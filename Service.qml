@@ -14,7 +14,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string pluginId: manifest && manifest.id ? manifest.id : "MASH2RAFI.orbital-clock"
+  readonly property string pluginId: manifest && manifest.id ? manifest.id : "mash2rafi.kronos"
   readonly property var pluginEntry: liveConfig.entry || Config.entryOrDefault(shell, root.pluginId)
   readonly property var cfg: Clock.readSettings(root.pluginEntry)
 
@@ -189,7 +189,7 @@ Item {
         window: panel
       }
 
-      WlrLayershell.namespace: "MASH2RAFI-orbital-clock"
+      WlrLayershell.namespace: "MASH2RAFI-kronos"
       WlrLayershell.layer: WlrLayer.Bottom
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
@@ -239,7 +239,7 @@ Item {
           function onImplicitHeightChanged() { clockHost.relayout() }
         }
 
-        OrbitalClockFace {
+        ClockFace {
           id: clockFace
           width: clockFace.implicitWidth
           height: clockFace.implicitHeight

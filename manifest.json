@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "MASH2RAFI.orbital-clock",
-  "name": "Orbital Clock",
+  "id": "mash2rafi.kronos",
+  "name": "Kronos",
   "version": "1.1.0",
   "author": "MASH2RAFI",
-  "description": "Desktop orbital clock with smooth minute/second rings, independent sizing controls, configurable ring arc, and a four-tab GUI settings panel on the wallpaper layer",
+  "description": "Desktop clock with smooth minute/second orbital rings or a unified digital readout, independent sizing controls, per-component customization, and a four-tab GUI settings panel on the wallpaper layer",
   "kinds": ["service", "panel", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {
@@ -13,8 +13,8 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Orbital clock",
-    "description": "Toggle the wallpaper orbital clock on or off; right-click for settings.",
+    "displayName": "Kronos",
+    "description": "Toggle the wallpaper clock on or off; right-click for settings.",
     "category": "Widgets",
     "allowMultiple": false,
     "defaultSection": "center"

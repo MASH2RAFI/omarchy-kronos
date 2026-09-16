@@ -6,7 +6,7 @@ import "PluginConfig.js" as Config
 
 BarWidget {
   id: root
-  moduleName: "MASH2RAFI.orbital-clock"
+  moduleName: "mash2rafi.kronos"
 
   readonly property var shell: root.bar ? root.bar.shell : null
   readonly property var pluginEntry: Config.entryOrDefault(root.shell, root.moduleName)
@@ -41,8 +41,8 @@ BarWidget {
     active: root.clockEnabled
     useActiveColor: true
     tooltipText: root.clockEnabled
-      ? "Orbital clock on — click to hide, right-click for settings"
-      : "Orbital clock off — click to show, right-click for settings"
+      ? "Kronos on — click to hide, right-click for settings"
+      : "Kronos off — click to show, right-click for settings"
     onPressed: function(button) {
       if (button === Qt.RightButton) root.openSettings()
       else root.toggleClock()

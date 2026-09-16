@@ -19,7 +19,7 @@ Item {
   property bool closingFromHost: false
 
   readonly property bool openedState: root.opened
-  readonly property string pluginId: manifest && manifest.id ? manifest.id : "MASH2RAFI.orbital-clock"
+  readonly property string pluginId: manifest && manifest.id ? manifest.id : "mash2rafi.kronos"
   readonly property bool popupBlocked: positionField.popupOpen
     || centerLayoutField.popupOpen
     || screenModeField.popupOpen
@@ -236,7 +236,7 @@ Item {
     visible: root.opened
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "MASH2RAFI-orbital-clock-settings"
+    WlrLayershell.namespace: "MASH2RAFI-kronos-settings"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
@@ -306,7 +306,7 @@ Item {
           Text {
             id: titleBlock
             width: parent.width
-            text: "Orbital Clock"
+            text: "Kronos"
             color: Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.title
@@ -378,7 +378,7 @@ Item {
                 x: (previewClip.width - previewFace.implicitWidth * scale) / 2
                 y: (previewClip.height - previewFace.implicitHeight * scale) / 2
 
-                OrbitalClockFace {
+                ClockFace {
                   id: previewFace
                   active: root.opened
                   position: root.draft.position
@@ -1460,7 +1460,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 visible: root.draft.screenMode === "selected" && root.draft.selectedMonitors.length === 0
-                text: "No monitors selected — the clock will be hidden on every output. Re-open settings with: omarchy-shell shell summon MASH2RAFI.orbital-clock \"{}\""
+                text: "No monitors selected — the clock will be hidden on every output. Re-open settings with: omarchy-shell shell summon mash2rafi.kronos \"{}\""
                 color: Color.urgent
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption

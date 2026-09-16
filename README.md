@@ -1,6 +1,6 @@
-# Orbital Clock
+# Kronos
 
-A third-party [Omarchy](https://omarchy.org) shell plugin that renders a large desktop clock on your wallpaper. The design pairs a bold hour numeral with two smooth orbital rings for minutes and seconds, inspired by terminal-style and Ryoku-like orbital layouts.
+A third-party [Omarchy](https://omarchy.org) shell plugin that renders a large, deeply customizable desktop clock on your wallpaper. The default look pairs a bold hour numeral with two smooth orbital rings for minutes and seconds, inspired by terminal-style and Ryoku-like orbital layouts — or switch to a unified digital readout, and tune color, font, size, and position independently for every piece.
 
 The clock lives on the wallpaper layer (below windows), respects the Omarchy bar when placed on the same edge, and adapts ring size to your monitor height.
 
@@ -10,7 +10,7 @@ All shots use `top-right` with a vertical bar — hour against the bar, rings cu
 
 | Space wallpaper | Light wallpaper | Dark layered wallpaper |
 | --- | --- | --- |
-| ![Orbital Clock on a space wallpaper](preview.png) | ![Orbital Clock on a light minimal wallpaper](docs/reference-light-wallpaper.png) | ![Orbital Clock on a dark layered wallpaper](docs/reference-dark-layers.png) |
+| ![Kronos on a space wallpaper](preview.png) | ![Kronos on a light minimal wallpaper](docs/reference-light-wallpaper.png) | ![Kronos on a dark layered wallpaper](docs/reference-dark-layers.png) |
 | **Contrast** rings on a busy background | **Mono** rings on a minimal background | Full rings with tick labels on a dark theme |
 
 `preview.png` is the marketplace listing image. Additional reference shots live in [`docs/`](docs/).
@@ -48,32 +48,32 @@ All shots use `top-right` with a vertical bar — hour against the bar, rings cu
 ### Option A — Omarchy plugin command (recommended)
 
 ```bash
-omarchy plugin add https://github.com/MASH2RAFI/omarchy-orbital-clock.git --enable
+omarchy plugin add https://github.com/MASH2RAFI/omarchy-kronos.git --enable
 omarchy restart shell
 ```
 
 ### Option B — Symlink (development)
 
 ```bash
-git clone https://github.com/MASH2RAFI/omarchy-orbital-clock.git ~/Projects/omarchy-orbital-clock
+git clone https://github.com/MASH2RAFI/omarchy-kronos.git ~/Projects/omarchy-kronos
 
-ln -sfn ~/Projects/omarchy-orbital-clock \
-  ~/.config/omarchy/plugins/MASH2RAFI.orbital-clock
+ln -sfn ~/Projects/omarchy-kronos \
+  ~/.config/omarchy/plugins/mash2rafi.kronos
 
-omarchy plugin enable MASH2RAFI.orbital-clock
+omarchy plugin enable mash2rafi.kronos
 omarchy restart shell
 ```
 
 ### Option C — Copy into plugins directory
 
 ```bash
-git clone https://github.com/MASH2RAFI/omarchy-orbital-clock.git
-cp -r omarchy-orbital-clock ~/.config/omarchy/plugins/MASH2RAFI.orbital-clock
-omarchy plugin enable MASH2RAFI.orbital-clock
+git clone https://github.com/MASH2RAFI/omarchy-kronos.git
+cp -r omarchy-kronos ~/.config/omarchy/plugins/mash2rafi.kronos
+omarchy plugin enable mash2rafi.kronos
 omarchy restart shell
 ```
 
-The plugin id **must** match the directory name: `MASH2RAFI.orbital-clock`.
+The plugin id **must** match the directory name: `mash2rafi.kronos`.
 
 ## Configuration
 
@@ -83,7 +83,7 @@ Add or edit the plugin entry in `~/.config/omarchy/shell.json`:
 {
   "plugins": [
     {
-      "id": "MASH2RAFI.orbital-clock",
+      "id": "mash2rafi.kronos",
       "scale": 1,
       "hourScale": 0.75,
       "dateScale": 1,
@@ -145,12 +145,12 @@ When the plugin is enabled, a **bar widget** is added to your Omarchy bar (defau
 | **Left click** | Toggle the wallpaper clock on/off (`clockEnabled`) |
 | **Right click** | Open settings |
 
-Move it like any bar widget: `omarchy bar move MASH2RAFI.orbital-clock --section center --after omarchy.clock`
+Move it like any bar widget: `omarchy bar move mash2rafi.kronos --section center --after omarchy.clock`
 
 You can also open settings from the terminal:
 
 ```bash
-omarchy-shell shell summon MASH2RAFI.orbital-clock "{}"
+omarchy-shell shell summon mash2rafi.kronos "{}"
 ```
 
 Close with **Esc**, clicking the scrim, or the **Close** button.
@@ -347,7 +347,7 @@ Turn off **Seconds ring** (General tab) for the lowest CPU use (~1 repaint/sec).
 ### Project layout
 
 ```
-omarchy-orbital-clock/
+omarchy-kronos/
 ├── manifest.json          # Plugin metadata and settings schema
 ├── preview.png            # Marketplace preview screenshot
 ├── docs/                  # Extra reference screenshots for README
@@ -355,7 +355,7 @@ omarchy-orbital-clock/
 │   └── reference-dark-layers.png
 ├── Service.qml            # Layer-shell window, placement, config wiring
 ├── BarWidget.qml          # Bar toggle + settings shortcut
-├── OrbitalClockFace.qml   # Clock UI: rings, capsules, hour, date
+├── ClockFace.qml   # Clock UI: rings, capsules, hour, date
 ├── RingCanvas.qml         # 60-tick ring dial (minute + second rings)
 ├── DateColumn.qml         # Shared date/weekday/AM-PM column
 ├── TimeCapsule.qml        # Minute/second pill capsule
@@ -391,8 +391,8 @@ omarchy-shell shell rescanPlugins
 Before deploying, per the [Omarchy plugin development guide](https://plugins.omarchy.org/develop.html):
 
 ```bash
-omarchy plugin validate ~/Projects/omarchy-orbital-clock
-qmllint -I /usr/share/omarchy/shell ~/Projects/omarchy-orbital-clock/*.qml
+omarchy plugin validate ~/Projects/omarchy-kronos
+qmllint -I /usr/share/omarchy/shell ~/Projects/omarchy-kronos/*.qml
 ```
 
 Both should exit clean (no output, exit code 0). `qmllint` also works without `-I` (it just can't resolve `qs.Commons`/`qs.Ui` types then, so it checks less).
@@ -402,14 +402,14 @@ Both should exit clean (no output, exit code 0). `qmllint` also works without `-
 Check recent shell logs for plugin errors:
 
 ```bash
-journalctl --user --since "5 min ago" --no-pager | rg -i "orbital|SettingsPanel|SettingsSlider|load failed"
+journalctl --user --since "5 min ago" --no-pager | rg -i "kronos|SettingsPanel|SettingsSlider|load failed"
 ```
 
 Rescan plugins and open the settings panel from the terminal:
 
 ```bash
 omarchy-shell shell rescanPlugins
-omarchy-shell shell summon MASH2RAFI.orbital-clock "{}"
+omarchy-shell shell summon mash2rafi.kronos "{}"
 ```
 
 Common issues:
@@ -433,7 +433,7 @@ Common issues:
 - **`ShellConfigWatcher.qml`** — works around a host limitation: the scoped shell object plugins receive (`services/PluginShellApi.qml` in the Omarchy shell) sets `barConfig` once at creation via a plain value (`barConfig: shell.publicBarConfig()`, not `Qt.binding(...)`), and that scoped object is cached for the plugin's whole lifetime keyed only by static capabilities — so it never reflects settings-panel edits made afterward, only a full shell restart does. This component reads `~/.config/omarchy/shell.json` directly with `watchChanges: true` instead, so both `Service.qml` and `SettingsPanel.qml` see edits within ~2 seconds with no restart.
 - **`SettingsSlider.qml`** — reusable labeled slider row (`import qs.Ui` for `PanelSlider`). Used on General, Fonts & sizes, and Components tabs. Same-directory QML components load by type name — no extra import line needed in the panel.
 - **`ColorField.qml`** — hex color override field: swatch + validated text input + an **Auto** button that clears back to `""` (theme-derived). Used throughout the Components tab.
-- **`OrbitalClockFace.qml`** — composes rings, hour/date column, and capsules. Layout/text scales are independent properties; ring arc comes from `Clock.layoutSpec(position, centerLayout, ringArcDegrees)`; per-component color/font overrides are merged in via `Theme.applyOverrides()`.
+- **`ClockFace.qml`** — composes rings, hour/date column, and capsules. Layout/text scales are independent properties; ring arc comes from `Clock.layoutSpec(position, centerLayout, ringArcDegrees)`; per-component color/font overrides are merged in via `Theme.applyOverrides()`.
 - **`RingCanvas.qml`** — Canvas ring dial with independent minute/second dot colors and label colors, separate `labelScale` (tick labels) and `chromeScale` (guide strokes), and a `showLabels` toggle. Arc clipping via `arcFrom` / `arcTo`.
 - **`ClockModel.js`** — `.pragma library` module: time parts, `readSettings` / `mergeSettings` / `settingsToEntry`, placement geometry, layout specs, arc rules, ring math, and the saved-layout preset functions (`saveLayoutPreset`, `applyLayoutSnapshot`, `updateLayoutPreset`, `removeLayoutPreset`).
 - **`ClockTheme.js`** — `accentMode` palette mapping (contrast / accent / theme / mono) plus `applyOverrides()` for layering per-component color overrides on top of it.
@@ -444,8 +444,8 @@ Common issues:
 ## Uninstall
 
 ```bash
-omarchy plugin disable MASH2RAFI.orbital-clock
-rm ~/.config/omarchy/plugins/MASH2RAFI.orbital-clock   # skip if symlink — remove link only
+omarchy plugin disable mash2rafi.kronos
+rm ~/.config/omarchy/plugins/mash2rafi.kronos   # skip if symlink — remove link only
 omarchy restart shell
 ```
 
