@@ -15,8 +15,13 @@ Item {
   property var manifest: null
 
   readonly property string pluginId: manifest && manifest.id ? manifest.id : "MASH2RAFI.orbital-clock"
-  readonly property var pluginEntry: Config.entryOrDefault(shell, root.pluginId)
+  readonly property var pluginEntry: liveConfig.entry || Config.entryOrDefault(shell, root.pluginId)
   readonly property var cfg: Clock.readSettings(root.pluginEntry)
+
+  ShellConfigWatcher {
+    id: liveConfig
+    pluginId: root.pluginId
+  }
   readonly property var pos: Clock.parsePosition(root.cfg.position)
 
   property string internalMonitorName: ""
@@ -225,7 +230,6 @@ Item {
 
         Connections {
           target: shell
-          function onShellConfigChanged() { clockHost.relayout() }
           function onBarConfigChanged() { clockHost.relayout() }
         }
 
@@ -249,6 +253,8 @@ Item {
           dateScaleFactor: root.cfg.dateScale
           subtimeScaleFactor: root.cfg.subtimeScale
           ringLabelScaleFactor: root.cfg.ringLabelScale
+          minuteCapsuleScaleFactor: root.cfg.minuteCapsuleScale
+          secondCapsuleScaleFactor: root.cfg.secondCapsuleScale
           screenRefreshRate: panel.screenRefreshRate
           position: root.cfg.position
           use24h: root.cfg.use24h
@@ -262,6 +268,31 @@ Item {
           ringGap: root.cfg.ringGap
           ringArcDegrees: root.cfg.ringArcDegrees
           ringTransparency: root.cfg.ringTransparency
+          hourColor: root.cfg.hourColor
+          dateColor: root.cfg.dateColor
+          minuteCapsuleColor: root.cfg.minuteCapsuleColor
+          secondCapsuleColor: root.cfg.secondCapsuleColor
+          minuteRingColor: root.cfg.minuteRingColor
+          secondRingColor: root.cfg.secondRingColor
+          ringLabelColor: root.cfg.ringLabelColor
+          hourFont: root.cfg.hourFont
+          dateFont: root.cfg.dateFont
+          minuteCapsuleFont: root.cfg.minuteCapsuleFont
+          secondCapsuleFont: root.cfg.secondCapsuleFont
+          showHour: root.cfg.showHour
+          showMinuteCapsule: root.cfg.showMinuteCapsule
+          showSecondCapsule: root.cfg.showSecondCapsule
+          showRingLabels: root.cfg.showRingLabels
+          showRings: root.cfg.showRings
+          hourOffsetX: root.cfg.hourOffsetX
+          hourOffsetY: root.cfg.hourOffsetY
+          dateOffsetX: root.cfg.dateOffsetX
+          dateOffsetY: root.cfg.dateOffsetY
+          minuteCapsuleAngleOffset: root.cfg.minuteCapsuleAngleOffset
+          secondCapsuleAngleOffset: root.cfg.secondCapsuleAngleOffset
+          minuteCapsuleRadiusOffset: root.cfg.minuteCapsuleRadiusOffset
+          secondCapsuleRadiusOffset: root.cfg.secondCapsuleRadiusOffset
+          ringRotationOffset: root.cfg.ringRotationOffset
         }
 
         // Larger hit target — the clock chrome is often small (corners, minimal layout).

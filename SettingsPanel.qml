@@ -26,6 +26,10 @@ Item {
     || accentField.popupOpen
     || clockFontField.popupOpen
     || labelFontField.popupOpen
+    || hourFontField.popupOpen
+    || dateFontField.popupOpen
+    || minuteCapsuleFontField.popupOpen
+    || secondCapsuleFontField.popupOpen
   readonly property color scrim: Color.menu.scrim
   readonly property color cardBackground: Color.popups.background
   readonly property var cardBorderSpec: Border.surfaceSpec(
@@ -66,9 +70,19 @@ Item {
 
   readonly property var clockFontOptions: Fonts.fontOptions(Fonts.CLOCK_FONTS, draft.clockFont)
   readonly property var labelFontOptions: Fonts.fontOptions(Fonts.LABEL_FONTS, draft.labelFont)
+  readonly property var autoFontOption: [{ value: "", label: "Auto — match clock font" }]
+  readonly property var hourFontOptions: autoFontOption.concat(Fonts.fontOptions(Fonts.CLOCK_FONTS, draft.hourFont))
+  readonly property var dateFontOptions: autoFontOption.concat(Fonts.fontOptions(Fonts.CLOCK_FONTS, draft.dateFont))
+  readonly property var minuteCapsuleFontOptions: autoFontOption.concat(Fonts.fontOptions(Fonts.CLOCK_FONTS, draft.minuteCapsuleFont))
+  readonly property var secondCapsuleFontOptions: autoFontOption.concat(Fonts.fontOptions(Fonts.CLOCK_FONTS, draft.secondCapsuleFont))
+
+  ShellConfigWatcher {
+    id: liveConfig
+    pluginId: root.pluginId
+  }
 
   function pluginEntry() {
-    return Config.entryOrDefault(shell, root.pluginId)
+    return liveConfig.entry || Config.entryOrDefault(shell, root.pluginId)
   }
 
   function allScreenNames() {
@@ -154,8 +168,36 @@ Item {
   }
 
   function resetToDefaults() {
-    applyDraft(Config.defaultSettings())
+    var defaults = Config.defaultSettings()
+    defaults.savedLayouts = root.draft.savedLayouts
+    applyDraft(defaults)
     persist()
+  }
+
+  function saveCurrentAsLayout(name) {
+    var list = Clock.saveLayoutPreset(root.draft.savedLayouts, name, root.draft)
+    root.patchDraft({ savedLayouts: list })
+  }
+
+  function applyLayout(id) {
+    var preset = Clock.findLayoutPreset(root.draft.savedLayouts, id)
+    if (!preset) return
+    root.patchDraft(Clock.applyLayoutSnapshot(root.draft, preset.settings))
+  }
+
+  function renameLayout(id, name) {
+    var list = Clock.updateLayoutPreset(root.draft.savedLayouts, id, { name: name })
+    root.patchDraft({ savedLayouts: list })
+  }
+
+  function updateLayoutFromCurrent(id) {
+    var list = Clock.updateLayoutPreset(root.draft.savedLayouts, id, { settings: root.draft })
+    root.patchDraft({ savedLayouts: list })
+  }
+
+  function deleteLayout(id) {
+    var list = Clock.removeLayoutPreset(root.draft.savedLayouts, id)
+    root.patchDraft({ savedLayouts: list })
   }
 
   function refreshRateForScreen(screen) {
@@ -278,7 +320,7 @@ Item {
             spacing: Style.spacing.sm
 
             Button {
-              width: (parent.width - parent.spacing * 2) / 3
+              width: (parent.width - parent.spacing * 3) / 4
               text: "General"
               bordered: root.settingsPage === "general"
               focusable: true
@@ -286,7 +328,7 @@ Item {
             }
 
             Button {
-              width: (parent.width - parent.spacing * 2) / 3
+              width: (parent.width - parent.spacing * 3) / 4
               text: "Fonts & sizes"
               bordered: root.settingsPage === "fonts"
               focusable: true
@@ -294,7 +336,15 @@ Item {
             }
 
             Button {
-              width: (parent.width - parent.spacing * 2) / 3
+              width: (parent.width - parent.spacing * 3) / 4
+              text: "Components"
+              bordered: root.settingsPage === "components"
+              focusable: true
+              onClicked: root.settingsPage = "components"
+            }
+
+            Button {
+              width: (parent.width - parent.spacing * 3) / 4
               text: "Monitors"
               bordered: root.settingsPage === "monitors"
               focusable: true
@@ -342,6 +392,8 @@ Item {
                   dateScaleFactor: root.draft.dateScale
                   subtimeScaleFactor: root.draft.subtimeScale
                   ringLabelScaleFactor: root.draft.ringLabelScale
+                  minuteCapsuleScaleFactor: root.draft.minuteCapsuleScale
+                  secondCapsuleScaleFactor: root.draft.secondCapsuleScale
                   availableHeight: 420
                   availableWidth: 560
                   use24h: root.draft.use24h
@@ -350,6 +402,31 @@ Item {
                   accentMode: root.draft.accentMode
                   clockFont: root.draft.clockFont
                   labelFont: root.draft.labelFont
+                  hourColor: root.draft.hourColor
+                  dateColor: root.draft.dateColor
+                  minuteCapsuleColor: root.draft.minuteCapsuleColor
+                  secondCapsuleColor: root.draft.secondCapsuleColor
+                  minuteRingColor: root.draft.minuteRingColor
+                  secondRingColor: root.draft.secondRingColor
+                  ringLabelColor: root.draft.ringLabelColor
+                  hourFont: root.draft.hourFont
+                  dateFont: root.draft.dateFont
+                  minuteCapsuleFont: root.draft.minuteCapsuleFont
+                  secondCapsuleFont: root.draft.secondCapsuleFont
+                  showHour: root.draft.showHour
+                  showMinuteCapsule: root.draft.showMinuteCapsule
+                  showSecondCapsule: root.draft.showSecondCapsule
+                  showRingLabels: root.draft.showRingLabels
+                  showRings: root.draft.showRings
+                  hourOffsetX: root.draft.hourOffsetX
+                  hourOffsetY: root.draft.hourOffsetY
+                  dateOffsetX: root.draft.dateOffsetX
+                  dateOffsetY: root.draft.dateOffsetY
+                  minuteCapsuleAngleOffset: root.draft.minuteCapsuleAngleOffset
+                  secondCapsuleAngleOffset: root.draft.secondCapsuleAngleOffset
+                  minuteCapsuleRadiusOffset: root.draft.minuteCapsuleRadiusOffset
+                  secondCapsuleRadiusOffset: root.draft.secondCapsuleRadiusOffset
+                  ringRotationOffset: root.draft.ringRotationOffset
                   lowPower: true
                 }
               }
@@ -416,6 +493,124 @@ Item {
                 options: root.layoutStyleOptions
                 onChanged: function(v) {
                   root.patchDraft({ centerLayout: Clock.normalizeLayoutStyle(v) })
+                }
+              }
+
+              PanelSeparator { width: parent.width }
+
+              PanelSectionHeader {
+                width: parent.width
+                text: "Saved layouts"
+              }
+
+              Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                visible: root.draft.savedLayouts.length === 0
+                text: "No saved layouts yet. Dial in a look anywhere in this panel, then save it below to switch back to it anytime."
+                color: Qt.darker(Color.foreground, 1.45)
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+              }
+
+              Repeater {
+                model: root.draft.savedLayouts
+
+                Column {
+                  width: parent ? parent.width : implicitWidth
+                  spacing: Style.spacing.sm
+
+                  property var layoutData: modelData
+                  property bool renaming: false
+
+                  Text {
+                    width: parent.width
+                    elide: Text.ElideRight
+                    text: layoutData.name
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
+                    font.bold: true
+                  }
+
+                  Flow {
+                    width: parent.width
+                    spacing: Style.spacing.sm
+
+                    Button {
+                      text: "Apply"
+                      focusable: true
+                      onClicked: root.applyLayout(layoutData.id)
+                    }
+                    Button {
+                      text: "Update with current"
+                      focusable: true
+                      onClicked: root.updateLayoutFromCurrent(layoutData.id)
+                    }
+                    Button {
+                      text: renaming ? "Cancel rename" : "Rename"
+                      focusable: true
+                      onClicked: renaming = !renaming
+                    }
+                    Button {
+                      text: "Delete"
+                      focusable: true
+                      onClicked: root.deleteLayout(layoutData.id)
+                    }
+                  }
+
+                  Row {
+                    width: parent.width
+                    visible: renaming
+                    spacing: Style.spacing.sm
+
+                    TextField {
+                      id: renameField
+                      width: parent.width - saveRenameBtn.implicitWidth - parent.spacing
+                      text: layoutData.name
+                      onAccepted: {
+                        root.renameLayout(layoutData.id, text)
+                        renaming = false
+                      }
+                    }
+                    Button {
+                      id: saveRenameBtn
+                      text: "Save name"
+                      focusable: true
+                      onClicked: {
+                        root.renameLayout(layoutData.id, renameField.text)
+                        renaming = false
+                      }
+                    }
+                  }
+
+                  PanelSeparator { width: parent.width }
+                }
+              }
+
+              Row {
+                width: parent.width
+                spacing: Style.spacing.sm
+
+                TextField {
+                  id: newLayoutName
+                  width: parent.width - saveNewLayoutBtn.implicitWidth - parent.spacing
+                  placeholderText: "New layout name"
+                  onAccepted: {
+                    if (text.trim() === "") return
+                    root.saveCurrentAsLayout(text)
+                    text = ""
+                  }
+                }
+                Button {
+                  id: saveNewLayoutBtn
+                  text: "Save current as new layout"
+                  focusable: true
+                  enabled: newLayoutName.text.trim() !== ""
+                  onClicked: {
+                    root.saveCurrentAsLayout(newLayoutName.text)
+                    newLayoutName.text = ""
+                  }
                 }
               }
 
@@ -502,7 +697,7 @@ Item {
 
               Toggle {
                 width: parent.width
-                label: "Seconds ring"
+                label: "Show seconds ring"
                 description: "Show the outer seconds ring and capsule."
                 checked: root.draft.showSeconds
                 onClicked: {
@@ -540,7 +735,7 @@ Item {
 
               Toggle {
                 width: parent.width
-                label: "Date block"
+                label: "Show date block"
                 description: "Show date and weekday with the hour."
                 checked: root.draft.showDate
                 onClicked: {
@@ -663,8 +858,8 @@ Item {
               SettingsSlider {
                 width: parent.width
                 bar: root.fakeBar
-                label: "Subtime size"
-                helpText: "Minute/second line under the hour and capsule text."
+                label: "Subtime size (legacy)"
+                helpText: "Legacy — no current layout shows a separate subtime line; kept for older saved configs."
                 minimum: 0.5
                 maximum: 2.5
                 step: 0.05
@@ -675,6 +870,42 @@ Item {
                 }
                 onReleased: function(v) {
                   root.patchDraft({ subtimeScale: Clock.roundScale(v) })
+                }
+              }
+
+              SettingsSlider {
+                width: parent.width
+                bar: root.fakeBar
+                label: "Minute capsule size"
+                helpText: "Minute capsule chrome and text scale together, independent of the seconds capsule."
+                minimum: 0.5
+                maximum: 2.5
+                step: 0.05
+                value: root.draft.minuteCapsuleScale
+                valueText: root.draft.minuteCapsuleScale.toFixed(2) + "×"
+                onMoved: function(v) {
+                  root.patchDraft({ minuteCapsuleScale: Clock.roundScale(v) }, false)
+                }
+                onReleased: function(v) {
+                  root.patchDraft({ minuteCapsuleScale: Clock.roundScale(v) })
+                }
+              }
+
+              SettingsSlider {
+                width: parent.width
+                bar: root.fakeBar
+                label: "Second capsule size"
+                helpText: "Seconds capsule chrome and text scale together, independent of the minute capsule."
+                minimum: 0.5
+                maximum: 2.5
+                step: 0.05
+                value: root.draft.secondCapsuleScale
+                valueText: root.draft.secondCapsuleScale.toFixed(2) + "×"
+                onMoved: function(v) {
+                  root.patchDraft({ secondCapsuleScale: Clock.roundScale(v) }, false)
+                }
+                onReleased: function(v) {
+                  root.patchDraft({ secondCapsuleScale: Clock.roundScale(v) })
                 }
               }
 
@@ -710,6 +941,403 @@ Item {
               }
 
               PanelSeparator { width: parent.width }
+
+              Item {
+                width: parent.width
+                height: root.scrollBottomPad
+              }
+            }
+            }
+
+            ScrollView {
+              id: componentsScroll
+              anchors.fill: parent
+              clip: true
+              visible: root.settingsPage === "components"
+              ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+            Column {
+              id: componentsPage
+              width: componentsScroll.availableWidth
+              spacing: root.contentGap
+
+              Item {
+                width: parent.width
+                height: Style.space(4)
+              }
+
+              Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Fine-tune each piece independently — color and font override the theme/clock-font defaults when set; offsets nudge position without disturbing auto-layout. Size and Show date/seconds live on the other tabs."
+                color: Qt.darker(Color.foreground, 1.35)
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+              }
+
+              Rectangle {
+                width: parent.width
+                height: hourCard.implicitHeight + Style.spacing.panelPadding * 2
+                radius: Style.cornerRadius
+                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                border.width: Math.max(1, Style.space(1))
+
+                Column {
+                  id: hourCard
+                  x: Style.spacing.panelPadding
+                  y: Style.spacing.panelPadding
+                  width: parent.width - Style.spacing.panelPadding * 2
+                  spacing: Style.spacing.md
+
+                  PanelSectionHeader { width: parent.width; text: "Hour" }
+
+                  Toggle {
+                    width: parent.width
+                    label: "Show hour"
+                    checked: root.draft.showHour
+                    onClicked: root.patchDraft({ showHour: !root.draft.showHour })
+                  }
+
+                  FontDropdown {
+                    id: hourFontField
+                    width: parent.width
+                    label: "Hour font"
+                    value: root.draft.hourFont
+                    options: root.hourFontOptions
+                    maxVisibleRows: 6
+                    onChanged: function(v) { root.patchDraft({ hourFont: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Hour color"
+                    helpText: "Overrides the theme-derived hour color."
+                    value: root.draft.hourColor
+                    onChanged: function(v) { root.patchDraft({ hourColor: v }) }
+                  }
+
+                  Row {
+                    width: parent.width
+                    spacing: Style.spacing.md
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Horizontal offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.hourOffsetX
+                      valueText: Math.round(root.draft.hourOffsetX) + "px"
+                      onMoved: function(v) { root.patchDraft({ hourOffsetX: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ hourOffsetX: Math.round(v) }) }
+                    }
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Vertical offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.hourOffsetY
+                      valueText: Math.round(root.draft.hourOffsetY) + "px"
+                      onMoved: function(v) { root.patchDraft({ hourOffsetY: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ hourOffsetY: Math.round(v) }) }
+                    }
+                  }
+                }
+              }
+
+              Rectangle {
+                width: parent.width
+                height: dateCard.implicitHeight + Style.spacing.panelPadding * 2
+                radius: Style.cornerRadius
+                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                border.width: Math.max(1, Style.space(1))
+
+                Column {
+                  id: dateCard
+                  x: Style.spacing.panelPadding
+                  y: Style.spacing.panelPadding
+                  width: parent.width - Style.spacing.panelPadding * 2
+                  spacing: Style.spacing.md
+
+                  PanelSectionHeader { width: parent.width; text: "Date" }
+
+                  FontDropdown {
+                    id: dateFontField
+                    width: parent.width
+                    label: "Date font"
+                    value: root.draft.dateFont
+                    options: root.dateFontOptions
+                    maxVisibleRows: 6
+                    onChanged: function(v) { root.patchDraft({ dateFont: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Date color"
+                    helpText: "Overrides the weekday line; date/AM-PM stay muted."
+                    value: root.draft.dateColor
+                    onChanged: function(v) { root.patchDraft({ dateColor: v }) }
+                  }
+
+                  Row {
+                    width: parent.width
+                    spacing: Style.spacing.md
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Horizontal offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.dateOffsetX
+                      valueText: Math.round(root.draft.dateOffsetX) + "px"
+                      onMoved: function(v) { root.patchDraft({ dateOffsetX: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ dateOffsetX: Math.round(v) }) }
+                    }
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Vertical offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.dateOffsetY
+                      valueText: Math.round(root.draft.dateOffsetY) + "px"
+                      onMoved: function(v) { root.patchDraft({ dateOffsetY: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ dateOffsetY: Math.round(v) }) }
+                    }
+                  }
+                }
+              }
+
+              Rectangle {
+                width: parent.width
+                height: minuteCapsuleCard.implicitHeight + Style.spacing.panelPadding * 2
+                radius: Style.cornerRadius
+                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                border.width: Math.max(1, Style.space(1))
+
+                Column {
+                  id: minuteCapsuleCard
+                  x: Style.spacing.panelPadding
+                  y: Style.spacing.panelPadding
+                  width: parent.width - Style.spacing.panelPadding * 2
+                  spacing: Style.spacing.md
+
+                  PanelSectionHeader { width: parent.width; text: "Minute capsule" }
+
+                  Toggle {
+                    width: parent.width
+                    label: "Show minute capsule"
+                    checked: root.draft.showMinuteCapsule
+                    onClicked: root.patchDraft({ showMinuteCapsule: !root.draft.showMinuteCapsule })
+                  }
+
+                  FontDropdown {
+                    id: minuteCapsuleFontField
+                    width: parent.width
+                    label: "Minute capsule font"
+                    value: root.draft.minuteCapsuleFont
+                    options: root.minuteCapsuleFontOptions
+                    maxVisibleRows: 6
+                    onChanged: function(v) { root.patchDraft({ minuteCapsuleFont: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Minute capsule color"
+                    helpText: "Overrides the minute capsule's text color."
+                    value: root.draft.minuteCapsuleColor
+                    onChanged: function(v) { root.patchDraft({ minuteCapsuleColor: v }) }
+                  }
+
+                  Row {
+                    width: parent.width
+                    spacing: Style.spacing.md
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Angle offset"
+                      minimum: -90
+                      maximum: 90
+                      step: 1
+                      value: root.draft.minuteCapsuleAngleOffset
+                      valueText: Math.round(root.draft.minuteCapsuleAngleOffset) + "°"
+                      onMoved: function(v) { root.patchDraft({ minuteCapsuleAngleOffset: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ minuteCapsuleAngleOffset: Math.round(v) }) }
+                    }
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Radius offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.minuteCapsuleRadiusOffset
+                      valueText: Math.round(root.draft.minuteCapsuleRadiusOffset) + "px"
+                      onMoved: function(v) { root.patchDraft({ minuteCapsuleRadiusOffset: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ minuteCapsuleRadiusOffset: Math.round(v) }) }
+                    }
+                  }
+                }
+              }
+
+              Rectangle {
+                width: parent.width
+                height: secondCapsuleCard.implicitHeight + Style.spacing.panelPadding * 2
+                radius: Style.cornerRadius
+                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                border.width: Math.max(1, Style.space(1))
+
+                Column {
+                  id: secondCapsuleCard
+                  x: Style.spacing.panelPadding
+                  y: Style.spacing.panelPadding
+                  width: parent.width - Style.spacing.panelPadding * 2
+                  spacing: Style.spacing.md
+
+                  PanelSectionHeader { width: parent.width; text: "Second capsule" }
+
+                  Toggle {
+                    width: parent.width
+                    label: "Show second capsule"
+                    checked: root.draft.showSecondCapsule
+                    onClicked: root.patchDraft({ showSecondCapsule: !root.draft.showSecondCapsule })
+                  }
+
+                  FontDropdown {
+                    id: secondCapsuleFontField
+                    width: parent.width
+                    label: "Second capsule font"
+                    value: root.draft.secondCapsuleFont
+                    options: root.secondCapsuleFontOptions
+                    maxVisibleRows: 6
+                    onChanged: function(v) { root.patchDraft({ secondCapsuleFont: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Second capsule color"
+                    helpText: "Overrides the seconds capsule's text color."
+                    value: root.draft.secondCapsuleColor
+                    onChanged: function(v) { root.patchDraft({ secondCapsuleColor: v }) }
+                  }
+
+                  Row {
+                    width: parent.width
+                    spacing: Style.spacing.md
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Angle offset"
+                      minimum: -90
+                      maximum: 90
+                      step: 1
+                      value: root.draft.secondCapsuleAngleOffset
+                      valueText: Math.round(root.draft.secondCapsuleAngleOffset) + "°"
+                      onMoved: function(v) { root.patchDraft({ secondCapsuleAngleOffset: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ secondCapsuleAngleOffset: Math.round(v) }) }
+                    }
+
+                    SettingsSlider {
+                      width: (parent.width - parent.spacing) / 2
+                      bar: root.fakeBar
+                      label: "Radius offset"
+                      minimum: -40
+                      maximum: 40
+                      step: 1
+                      value: root.draft.secondCapsuleRadiusOffset
+                      valueText: Math.round(root.draft.secondCapsuleRadiusOffset) + "px"
+                      onMoved: function(v) { root.patchDraft({ secondCapsuleRadiusOffset: Math.round(v) }, false) }
+                      onReleased: function(v) { root.patchDraft({ secondCapsuleRadiusOffset: Math.round(v) }) }
+                    }
+                  }
+                }
+              }
+
+              Rectangle {
+                width: parent.width
+                height: ringsCard.implicitHeight + Style.spacing.panelPadding * 2
+                radius: Style.cornerRadius
+                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                border.width: Math.max(1, Style.space(1))
+
+                Column {
+                  id: ringsCard
+                  x: Style.spacing.panelPadding
+                  y: Style.spacing.panelPadding
+                  width: parent.width - Style.spacing.panelPadding * 2
+                  spacing: Style.spacing.md
+
+                  PanelSectionHeader { width: parent.width; text: "Rings & tick labels" }
+
+                  Toggle {
+                    width: parent.width
+                    label: "Show rings"
+                    checked: root.draft.showRings
+                    onClicked: root.patchDraft({ showRings: !root.draft.showRings })
+                  }
+
+                  Toggle {
+                    width: parent.width
+                    label: "Show tick labels"
+                    checked: root.draft.showRingLabels
+                    onClicked: root.patchDraft({ showRingLabels: !root.draft.showRingLabels })
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Minute ring color"
+                    helpText: "Overrides the inner ring's dot color."
+                    value: root.draft.minuteRingColor
+                    onChanged: function(v) { root.patchDraft({ minuteRingColor: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Second ring color"
+                    helpText: "Overrides the outer ring's dot color."
+                    value: root.draft.secondRingColor
+                    onChanged: function(v) { root.patchDraft({ secondRingColor: v }) }
+                  }
+
+                  ColorField {
+                    width: parent.width
+                    label: "Ring label color"
+                    helpText: "Overrides both rings' tick label color. Empty matches each ring's own dot color."
+                    value: root.draft.ringLabelColor
+                    onChanged: function(v) { root.patchDraft({ ringLabelColor: v }) }
+                  }
+
+                  SettingsSlider {
+                    width: parent.width
+                    bar: root.fakeBar
+                    label: "Rotation offset"
+                    helpText: "Rotates which tick sits at the dial focus — the visible arc and capsules don't move."
+                    minimum: -180
+                    maximum: 180
+                    step: 1
+                    value: root.draft.ringRotationOffset
+                    valueText: Math.round(root.draft.ringRotationOffset) + "°"
+                    onMoved: function(v) { root.patchDraft({ ringRotationOffset: Math.round(v) }, false) }
+                    onReleased: function(v) { root.patchDraft({ ringRotationOffset: Math.round(v) }) }
+                  }
+                }
+              }
 
               Item {
                 width: parent.width

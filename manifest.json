@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "MASH2RAFI.orbital-clock",
   "name": "Orbital Clock",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "MASH2RAFI",
-  "description": "Desktop orbital clock with smooth minute/second rings, independent sizing controls, configurable ring arc, and a three-tab GUI settings panel on the wallpaper layer",
+  "description": "Desktop orbital clock with smooth minute/second rings, independent sizing controls, configurable ring arc, and a four-tab GUI settings panel on the wallpaper layer",
   "kinds": ["service", "panel", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {
@@ -31,7 +31,7 @@
       "key": "hourScale",
       "type": "number",
       "label": "Hour size",
-      "defaultValue": 1,
+      "defaultValue": 0.75,
       "description": "Hour numeral from 0.5 to 2.5"
     },
     {
@@ -44,9 +44,23 @@
     {
       "key": "subtimeScale",
       "type": "number",
-      "label": "Subtime size",
+      "label": "Subtime size (legacy)",
       "defaultValue": 1,
-      "description": "Minute/second line and capsule text from 0.5 to 2.5"
+      "description": "Legacy sizing control — no current layout shows a separate subtime line; kept as a compatibility fallback for older saved configs"
+    },
+    {
+      "key": "minuteCapsuleScale",
+      "type": "number",
+      "label": "Minute capsule size",
+      "defaultValue": 1.7,
+      "description": "Minute capsule chrome and text from 0.5 to 2.5 — independent of the seconds capsule"
+    },
+    {
+      "key": "secondCapsuleScale",
+      "type": "number",
+      "label": "Second capsule size",
+      "defaultValue": 1,
+      "description": "Seconds capsule chrome and text from 0.5 to 2.5 — independent of the minute capsule"
     },
     {
       "key": "ringLabelScale",
@@ -59,7 +73,7 @@
       "key": "position",
       "type": "string",
       "label": "Position",
-      "defaultValue": "middle-right",
+      "defaultValue": "top-right",
       "description": "Anchor on the wallpaper: top-left, top-center, top-right, middle-left, middle-center, middle-right, bottom-left, bottom-center, bottom-right"
     },
     {
@@ -84,14 +98,14 @@
     {
       "key": "showDate",
       "type": "boolean",
-      "label": "Show date",
+      "label": "Show date block",
       "defaultValue": true
     },
     {
       "key": "accentMode",
       "type": "string",
       "label": "Ring colors",
-      "defaultValue": "contrast",
+      "defaultValue": "theme",
       "description": "contrast picks ring colors opposite the theme background; accent uses theme accent; theme uses foreground/muted; mono uses foreground only"
     },
     {
@@ -99,20 +113,20 @@
       "type": "string",
       "label": "Layout style",
       "defaultValue": "orbit",
-      "description": "Presentation style — orbit, minimal, sunburst, single, or digital. Focus direction and border hugging follow position; arc span is set by ringArcDegrees."
+      "description": "Presentation style — orbit or digital. Capsule spread (formerly \"sunburst\") is now tunable via the angle-offset sliders in Components. Focus direction and border hugging follow position; arc span is set by ringArcDegrees."
     },
     {
       "key": "ringDiameter",
       "type": "number",
       "label": "Ring diameter",
-      "defaultValue": 0.40,
+      "defaultValue": 0.29,
       "description": "Outer ring size as a fraction of screen height (0.25–0.55)"
     },
     {
       "key": "ringGap",
       "type": "number",
       "label": "Ring spacing",
-      "defaultValue": 48,
+      "defaultValue": 57,
       "description": "Gap between minute and seconds rings in pixels (24–100) — independent of layout size"
     },
     {
@@ -120,7 +134,7 @@
       "type": "number",
       "label": "Ring arc",
       "defaultValue": 0,
-      "description": "Visible ring arc in degrees (30–360), centered on the dial focus. 0 or omitted uses position default (90/180/360). 360 shows the full circle."
+      "description": "Visible ring arc in degrees (30–360), centered on the dial focus. 0 or omitted uses position default (120/180/360 for corner/edge/center). 360 shows the full circle."
     },
     {
       "key": "ringTransparency",
@@ -189,6 +203,177 @@
       "type": "string",
       "label": "Ring label font",
       "defaultValue": "JetBrainsMono Nerd Font,JetBrainsMono NF"
+    },
+    {
+      "key": "showHour",
+      "type": "boolean",
+      "label": "Show hour",
+      "defaultValue": true
+    },
+    {
+      "key": "hourColor",
+      "type": "string",
+      "label": "Hour color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the theme-derived hour color. Empty uses the theme."
+    },
+    {
+      "key": "hourFont",
+      "type": "string",
+      "label": "Hour font",
+      "defaultValue": "",
+      "description": "Overrides the clock font for the hour numeral only. Empty matches the clock font."
+    },
+    {
+      "key": "hourOffsetX",
+      "type": "number",
+      "label": "Hour horizontal offset",
+      "defaultValue": 0,
+      "description": "Nudges the hour+date+subtime stack left/right in pixels (-40 to 40)"
+    },
+    {
+      "key": "hourOffsetY",
+      "type": "number",
+      "label": "Hour vertical offset",
+      "defaultValue": 0,
+      "description": "Nudges the hour+date+subtime stack up/down in pixels (-40 to 40)"
+    },
+    {
+      "key": "dateColor",
+      "type": "string",
+      "label": "Date color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the theme-derived date color. Empty uses the theme."
+    },
+    {
+      "key": "dateFont",
+      "type": "string",
+      "label": "Date font",
+      "defaultValue": "",
+      "description": "Overrides both date fonts (weekday and date/AM-PM lines). Empty matches the clock/ring label fonts."
+    },
+    {
+      "key": "dateOffsetX",
+      "type": "number",
+      "label": "Date horizontal offset",
+      "defaultValue": 0,
+      "description": "Nudges the date block left/right in pixels (-40 to 40)"
+    },
+    {
+      "key": "dateOffsetY",
+      "type": "number",
+      "label": "Date vertical offset",
+      "defaultValue": 0,
+      "description": "Nudges the date block up/down in pixels (-40 to 40)"
+    },
+    {
+      "key": "showMinuteCapsule",
+      "type": "boolean",
+      "label": "Show minute capsule",
+      "defaultValue": true
+    },
+    {
+      "key": "minuteCapsuleColor",
+      "type": "string",
+      "label": "Minute capsule color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the minute capsule text color. Empty uses the theme."
+    },
+    {
+      "key": "minuteCapsuleFont",
+      "type": "string",
+      "label": "Minute capsule font",
+      "defaultValue": "",
+      "description": "Overrides the clock font for the minute capsule text. Empty matches the clock font."
+    },
+    {
+      "key": "minuteCapsuleAngleOffset",
+      "type": "number",
+      "label": "Minute capsule angle offset",
+      "defaultValue": 12,
+      "description": "Rotates the minute capsule around the dial in degrees (-90 to 90)"
+    },
+    {
+      "key": "minuteCapsuleRadiusOffset",
+      "type": "number",
+      "label": "Minute capsule radius offset",
+      "defaultValue": 1,
+      "description": "Moves the minute capsule in/out from the ring in pixels (-40 to 40)"
+    },
+    {
+      "key": "showSecondCapsule",
+      "type": "boolean",
+      "label": "Show second capsule",
+      "defaultValue": true
+    },
+    {
+      "key": "secondCapsuleColor",
+      "type": "string",
+      "label": "Second capsule color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the seconds capsule text color. Empty uses the theme."
+    },
+    {
+      "key": "secondCapsuleFont",
+      "type": "string",
+      "label": "Second capsule font",
+      "defaultValue": "",
+      "description": "Overrides the clock font for the seconds capsule text. Empty matches the clock font."
+    },
+    {
+      "key": "secondCapsuleAngleOffset",
+      "type": "number",
+      "label": "Second capsule angle offset",
+      "defaultValue": -18,
+      "description": "Rotates the seconds capsule around the dial in degrees (-90 to 90)"
+    },
+    {
+      "key": "secondCapsuleRadiusOffset",
+      "type": "number",
+      "label": "Second capsule radius offset",
+      "defaultValue": 0,
+      "description": "Moves the seconds capsule in/out from the ring in pixels (-40 to 40)"
+    },
+    {
+      "key": "showRings",
+      "type": "boolean",
+      "label": "Show rings",
+      "defaultValue": true
+    },
+    {
+      "key": "showRingLabels",
+      "type": "boolean",
+      "label": "Show ring tick labels",
+      "defaultValue": true,
+      "description": "Hides the 00–59 numeric labels while keeping the ring dots"
+    },
+    {
+      "key": "minuteRingColor",
+      "type": "string",
+      "label": "Minute ring color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the inner (minute) ring dot color. Empty uses the theme."
+    },
+    {
+      "key": "secondRingColor",
+      "type": "string",
+      "label": "Second ring color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding the outer (seconds) ring dot color. Empty uses the theme."
+    },
+    {
+      "key": "ringLabelColor",
+      "type": "string",
+      "label": "Ring label color",
+      "defaultValue": "",
+      "description": "Hex color (#RRGGBB) overriding both rings' tick label color. Empty matches each ring's own dot color."
+    },
+    {
+      "key": "ringRotationOffset",
+      "type": "number",
+      "label": "Ring rotation offset",
+      "defaultValue": 0,
+      "description": "Rotates which tick sits at the dial focus, in degrees (-180 to 180). Does not move the visible arc or capsules."
     }
   ]
 }

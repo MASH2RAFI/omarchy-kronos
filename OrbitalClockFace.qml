@@ -16,6 +16,8 @@ Item {
   property real dateScaleFactor: 1
   property real subtimeScaleFactor: 1
   property real ringLabelScaleFactor: 1
+  property real minuteCapsuleScaleFactor: 1
+  property real secondCapsuleScaleFactor: 1
   property real availableHeight: 0
   property real availableWidth: 0
   property int screenMargin: 0
@@ -32,6 +34,41 @@ Item {
   property bool lowPower: false
   property real screenRefreshRate: 60
 
+  property string hourColor: ""
+  property string dateColor: ""
+  property string minuteCapsuleColor: ""
+  property string secondCapsuleColor: ""
+  property string minuteRingColor: ""
+  property string secondRingColor: ""
+  property string ringLabelColor: ""
+  property string hourFont: ""
+  property string dateFont: ""
+  property string minuteCapsuleFont: ""
+  property string secondCapsuleFont: ""
+  property bool showHour: true
+  property bool showMinuteCapsule: true
+  property bool showSecondCapsule: true
+  property bool showRingLabels: true
+  property bool showRings: true
+  property real hourOffsetX: 0
+  property real hourOffsetY: 0
+  property real dateOffsetX: 0
+  property real dateOffsetY: 0
+  property real minuteCapsuleAngleOffset: 0
+  property real secondCapsuleAngleOffset: 0
+  property real minuteCapsuleRadiusOffset: 0
+  property real secondCapsuleRadiusOffset: 0
+  property real ringRotationOffset: 0
+
+  readonly property string effectiveHourFont: face.hourFont !== "" ? face.hourFont : face.clockFont
+  readonly property string effectiveDateFont: face.dateFont !== "" ? face.dateFont : face.clockFont
+  readonly property string effectiveDateLabelFont: face.dateFont !== "" ? face.dateFont : face.labelFont
+  readonly property string effectiveMinuteCapsuleFont: face.minuteCapsuleFont !== "" ? face.minuteCapsuleFont : face.clockFont
+  readonly property string effectiveSecondCapsuleFont: face.secondCapsuleFont !== "" ? face.secondCapsuleFont : face.clockFont
+  readonly property real ringRotationOffsetRad: face.ringRotationOffset * Math.PI / 180
+  readonly property real minuteCapsuleAngleOffsetRad: face.minuteCapsuleAngleOffset * Math.PI / 180
+  readonly property real secondCapsuleAngleOffsetRad: face.secondCapsuleAngleOffset * Math.PI / 180
+
   property real timeMs: Date.now()
 
   readonly property int ringTickMs: Clock.tickIntervalMs(
@@ -42,6 +79,8 @@ Item {
   readonly property real dateScale: Clock.clampTextScale(face.dateScaleFactor)
   readonly property real subtimeScale: Clock.clampTextScale(face.subtimeScaleFactor)
   readonly property real ringLabelScale: Clock.clampTextScale(face.ringLabelScaleFactor)
+  readonly property real minuteCapsuleScale: Clock.clampTextScale(face.minuteCapsuleScaleFactor)
+  readonly property real secondCapsuleScale: Clock.clampTextScale(face.secondCapsuleScaleFactor)
   readonly property var now: Clock.partsAt(face.timeMs, face.use24h)
   readonly property var spec: Clock.layoutSpec(face.position, face.centerLayout, face.ringArcDegrees)
   readonly property bool fullRing: face.spec.fullRing
@@ -50,7 +89,7 @@ Item {
   readonly property real labelPad: Math.round(12 * face.layoutScale)
   readonly property real ringLabelBleed: Math.round(22 * face.ringLabelScale)
   readonly property real verticalInset: Math.round(44 * face.layoutScale)
-  readonly property real heightFit: Clock.clampRingDiameter(face.ringDiameter)
+  readonly property real heightFit: Clock.clampRingDiameter(face.ringDiameter) * face.spec.dialSizeFactor
   readonly property real fitOuterRadius: Clock.fitOuterRadiusForPosition(
     face.availableWidth,
     face.availableHeight,
@@ -85,7 +124,8 @@ Item {
     : face.ringFocusAngle
   readonly property real hourW: Math.max(Math.round(face.hourSize * 0.78), hourColumn.implicitWidth)
   readonly property real hourH: face.hourOnlyH
-  readonly property real pillWidth: Math.round(42 * face.layoutScale)
+  readonly property real minutePillWidth: Math.round(42 * face.minuteCapsuleScale)
+  readonly property real secondPillWidth: Math.round(42 * face.secondCapsuleScale)
   readonly property var geo: Clock.clockGeometry(
     face.position,
     face.secondRadius,
@@ -100,7 +140,7 @@ Item {
       dateInColumn: face.showDate && face.spec.dateInHourColumn,
       dateColumnH: face.dateColumnH,
       dateAboveHour: face.spec.dateAboveHour,
-      showCenterSubtime: face.spec.showCenterSubtime,
+      showCenterSubtime: false,
       hourSize: face.hourSize,
       columnSpacing: face.columnSpacing,
       subtimeH: face.subtimeH
@@ -108,12 +148,21 @@ Item {
   )
   readonly property real minuteProgress: Clock.minuteProgress(face.now)
   readonly property real secondProgress: Clock.secondProgress(face.now)
-  readonly property var colors: Theme.palette(face.accentMode, {
+  readonly property var colors: Theme.applyOverrides(Theme.palette(face.accentMode, {
     foreground: Color.foreground,
     background: Color.background,
     muted: Color.muted,
     accent: Color.accent
+  }), {
+    hour: face.hourColor,
+    datePrimary: face.dateColor,
+    minuteCapsuleText: face.minuteCapsuleColor,
+    secondCapsuleText: face.secondCapsuleColor,
+    minuteRing: face.minuteRingColor,
+    secondRing: face.secondRingColor
   })
+  readonly property color minuteRingLabelColor: face.ringLabelColor !== "" ? face.ringLabelColor : face.colors.minuteRing
+  readonly property color secondRingLabelColor: face.ringLabelColor !== "" ? face.ringLabelColor : face.colors.secondRing
   readonly property real ringStrength: face.spec.ringStrength * face.ringTransparency
   readonly property var capsuleAngles: Clock.capsuleRenderAngles(
     face.minuteCapsuleAngle,
@@ -122,7 +171,6 @@ Item {
   )
   readonly property real minuteCapsuleRenderAngle: face.capsuleAngles.minute
   readonly property real secondCapsuleRenderAngle: face.capsuleAngles.second
-  readonly property bool sunburstCapsules: face.spec.variant === "sunburst"
   readonly property string subtimeText: face.showSeconds
     ? (face.now.mm + ":" + face.now.ss)
     : face.now.mm
@@ -134,20 +182,8 @@ Item {
     return Theme.ink(color, alpha)
   }
 
-  readonly property string minuteCapsuleText: {
-    if (face.spec.singleCapsule) return face.subtimeText
-    if (face.sunburstCapsules)
-      return Clock.ringLabelAtWorldAngle(
-        face.minuteCapsuleRenderAngle, face.minuteProgress, face.ringFocusAngle)
-    return face.now.mm
-  }
-
-  readonly property string secondCapsuleText: {
-    if (face.sunburstCapsules)
-      return Clock.ringLabelAtWorldAngle(
-        face.secondCapsuleRenderAngle, face.secondProgress, face.ringFocusAngle)
-    return face.now.ss
-  }
+  readonly property string minuteCapsuleText: face.spec.singleCapsule ? face.subtimeText : face.now.mm
+  readonly property string secondCapsuleText: face.now.ss
 
   function capsulePoint(radius, angle) {
     return Qt.point(
@@ -188,6 +224,7 @@ Item {
 
     RingCanvas {
       id: rings
+      visible: face.showRings && face.spec.showRings !== false
       width: parent.width
       height: face.geo.dialH
       cx: face.geo.cx
@@ -196,11 +233,15 @@ Item {
       secondRadius: face.secondRadius
       minuteProgress: face.minuteProgress
       secondProgress: face.secondProgress
-      focusAngle: face.ringFocusAngle
+      focusAngle: face.ringFocusAngle + face.ringRotationOffsetRad
       fullRing: face.fullRing
       showSeconds: face.showSeconds
       ringStrength: face.ringStrength
       ringColor: face.colors.minuteRing
+      secondRingColor: face.colors.secondRing
+      minuteLabelColor: face.minuteRingLabelColor
+      secondLabelColor: face.secondRingLabelColor
+      showLabels: face.showRingLabels
       labelScale: face.ringLabelScale
       chromeScale: face.layoutScale
       labelFont: face.labelFont
@@ -219,6 +260,11 @@ Item {
       function onRingStrengthChanged() { face.markRingDirty() }
       function onShowSecondsChanged() { face.markRingDirty() }
       function onLabelFontChanged() { face.markRingDirty() }
+      function onShowRingLabelsChanged() { face.markRingDirty() }
+      function onShowRingsChanged() { face.markRingDirty() }
+      function onRingRotationOffsetRadChanged() { face.markRingDirty() }
+      function onMinuteRingLabelColorChanged() { face.markRingDirty() }
+      function onSecondRingLabelColorChanged() { face.markRingDirty() }
     }
 
     Connections {
@@ -238,64 +284,103 @@ Item {
       y: face.geo.hourY
       spacing: face.columnSpacing
 
-      DateColumn {
+      Item {
         visible: face.showDate && face.spec.dateInHourColumn && face.spec.dateAboveHour
-        parts: face.now
-        use24h: face.use24h
-        uiScale: face.dateScale
-        clockFont: face.clockFont
-        labelFont: face.labelFont
-        primaryColor: face.colors.datePrimary
-        mutedColor: face.colors.dateMuted
+        width: dateAboveCol.implicitWidth
+        height: dateAboveCol.implicitHeight
+
+        DateColumn {
+          id: dateAboveCol
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.horizontalCenterOffset: face.dateOffsetX
+          y: face.dateOffsetY
+          parts: face.now
+          use24h: face.use24h
+          uiScale: face.dateScale
+          clockFont: face.effectiveDateFont
+          labelFont: face.effectiveDateLabelFont
+          primaryColor: face.colors.datePrimary
+          mutedColor: face.colors.dateMuted
+        }
       }
 
-      Text {
-        visible: face.spec.showCenterSubtime && face.spec.dateAboveHour
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: face.subtimeText
-        color: face.colors.subtime
-        font.family: face.labelFont
-        font.pixelSize: Math.round(13 * face.subtimeScale)
-        font.weight: Font.Medium
-        font.letterSpacing: 1.4
-        renderType: Text.NativeRendering
-        antialiasing: true
+      Item {
+        visible: face.showHour && !face.spec.digitalReadout
+        width: hourText.implicitWidth
+        height: hourText.implicitHeight
+
+        Text {
+          id: hourText
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.horizontalCenterOffset: face.hourOffsetX
+          y: face.hourOffsetY
+          text: face.now.hourLabel
+          color: face.colors.hour
+          font.family: face.effectiveHourFont
+          font.pixelSize: face.hourSize
+          font.weight: Font.Black
+          font.letterSpacing: -3 * face.hourScale
+          renderType: Text.NativeRendering
+          antialiasing: true
+        }
       }
 
-      Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: face.now.hourLabel
-        color: face.colors.hour
-        font.family: face.clockFont
-        font.pixelSize: face.hourSize
-        font.weight: Font.Black
-        font.letterSpacing: -3 * face.hourScale
-        renderType: Text.NativeRendering
-        antialiasing: true
+      Item {
+        visible: face.showHour && face.spec.digitalReadout
+        width: digitalRow.implicitWidth
+        height: digitalRow.implicitHeight
+
+        Row {
+          id: digitalRow
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.horizontalCenterOffset: face.hourOffsetX
+          y: face.hourOffsetY
+          spacing: Math.round(6 * face.hourScale)
+
+          Text {
+            text: face.now.hourLabel + ":" + face.now.mm
+            color: face.colors.hour
+            font.family: face.effectiveHourFont
+            font.pixelSize: face.hourSize
+            font.weight: Font.Black
+            font.letterSpacing: -3 * face.hourScale
+            renderType: Text.NativeRendering
+            antialiasing: true
+          }
+
+          Text {
+            visible: face.showSeconds
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Math.round(face.hourSize * 0.08)
+            text: face.now.ss
+            color: face.colors.subtime
+            font.family: face.labelFont
+            font.pixelSize: Math.round(face.hourSize * 0.3)
+            font.weight: Font.Medium
+            renderType: Text.NativeRendering
+            antialiasing: true
+          }
+        }
       }
 
-      Text {
-        visible: face.spec.showCenterSubtime && !face.spec.dateAboveHour
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: face.subtimeText
-        color: face.colors.subtime
-        font.family: face.labelFont
-        font.pixelSize: Math.round(13 * face.subtimeScale)
-        font.weight: Font.Medium
-        font.letterSpacing: 1.4
-        renderType: Text.NativeRendering
-        antialiasing: true
-      }
-
-      DateColumn {
+      Item {
         visible: face.showDate && face.spec.dateInHourColumn && !face.spec.dateAboveHour
-        parts: face.now
-        use24h: face.use24h
-        uiScale: face.dateScale
-        clockFont: face.clockFont
-        labelFont: face.labelFont
-        primaryColor: face.colors.datePrimary
-        mutedColor: face.colors.dateMuted
+        width: dateBelowCol.implicitWidth
+        height: dateBelowCol.implicitHeight
+
+        DateColumn {
+          id: dateBelowCol
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.horizontalCenterOffset: face.dateOffsetX
+          y: face.dateOffsetY
+          parts: face.now
+          use24h: face.use24h
+          uiScale: face.dateScale
+          clockFont: face.effectiveDateFont
+          labelFont: face.effectiveDateLabelFont
+          primaryColor: face.colors.datePrimary
+          mutedColor: face.colors.dateMuted
+        }
       }
     }
   }
@@ -303,11 +388,11 @@ Item {
   TimeCapsule {
     id: minutePill
     z: 10
-    visible: face.spec.showCapsules
-    uiScale: face.layoutScale
-    textScale: face.subtimeScale
-    width: face.spec.singleCapsule ? Math.round(62 * face.layoutScale) : face.pillWidth
-    fontFamily: face.clockFont
+    visible: face.spec.showCapsules && face.showMinuteCapsule
+    uiScale: face.minuteCapsuleScale
+    textScale: face.minuteCapsuleScale
+    width: face.spec.singleCapsule ? Math.round(62 * face.minuteCapsuleScale) : face.minutePillWidth
+    fontFamily: face.effectiveMinuteCapsuleFont
     fontSize: 15
     textColor: face.colors.minuteCapsuleText
     fillColor: face.themedInk(face.colors.capsuleFill, 0.96)
@@ -315,10 +400,10 @@ Item {
     text: face.minuteCapsuleText
 
     readonly property point focusPos: face.capsulePoint(
-      face.spec.singleCapsule
+      (face.spec.singleCapsule
         ? (face.showSeconds ? face.secondRadius : face.minuteRadius)
-        : face.minuteRadius,
-      face.minuteCapsuleRenderAngle
+        : face.minuteRadius) + face.minuteCapsuleRadiusOffset,
+      face.minuteCapsuleRenderAngle + face.minuteCapsuleAngleOffsetRad
     )
     x: focusPos.x - width / 2
     y: focusPos.y - height / 2
@@ -326,12 +411,12 @@ Item {
 
   TimeCapsule {
     id: secondPill
-    visible: face.showSeconds && face.spec.showCapsules && !face.spec.singleCapsule
+    visible: face.showSeconds && face.spec.showCapsules && !face.spec.singleCapsule && face.showSecondCapsule
     z: 11
-    uiScale: face.layoutScale
-    textScale: face.subtimeScale
-    width: face.pillWidth
-    fontFamily: face.clockFont
+    uiScale: face.secondCapsuleScale
+    textScale: face.secondCapsuleScale
+    width: face.secondPillWidth
+    fontFamily: face.effectiveSecondCapsuleFont
     fontSize: 14
     fontWeight: Font.Medium
     textColor: face.colors.secondCapsuleText
@@ -340,8 +425,8 @@ Item {
     text: face.secondCapsuleText
 
     readonly property point focusPos: face.capsulePoint(
-      face.secondRadius,
-      face.secondCapsuleRenderAngle
+      face.secondRadius + face.secondCapsuleRadiusOffset,
+      face.secondCapsuleRenderAngle + face.secondCapsuleAngleOffsetRad
     )
     x: focusPos.x - width / 2
     y: focusPos.y - height / 2
@@ -352,12 +437,13 @@ Item {
     visible: face.showDate && face.spec.dateBelowDial
     z: 3
     anchors.horizontalCenter: dialBlock.horizontalCenter
-    y: dialBlock.y + dialBlock.height + face.centerDateGap
+    anchors.horizontalCenterOffset: face.dateOffsetX
+    y: dialBlock.y + dialBlock.height + face.centerDateGap + face.dateOffsetY
     parts: face.now
     use24h: face.use24h
     uiScale: face.dateScale
-    clockFont: face.clockFont
-    labelFont: face.labelFont
+    clockFont: face.effectiveDateFont
+    labelFont: face.effectiveDateLabelFont
     dateFontSize: 12
     dayFontSize: 20
     primaryColor: face.colors.datePrimary

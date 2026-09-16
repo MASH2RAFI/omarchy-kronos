@@ -21,7 +21,9 @@ All shots use `top-right` with a vertical bar — hour against the bar, rings cu
 - **Two orbital dot rings** with numeric labels at every tick (00–59)
   - Inner ring: minutes (smooth rotation)
   - Outer ring: seconds (smooth rotation)
-- **Individual capsules** at the 9 o'clock focus — one for `MM`, one for `SS`
+- **Individual capsules** for `MM` and `SS` — independent size, color, font, visibility, and angle/radius position offsets per capsule (**Components** tab)
+- **Per-component customization** — hour, date, minute capsule, second capsule, and rings/tick labels each get their own color override, font override, visibility toggle, and position nudge, independent of the global theme (**Components** tab)
+- **Saved layouts** — name and save your current look, then apply/rename/update/delete it later; switch between full presets without losing your monitor setup (**General** tab)
 - **Multi-monitor** — one wallpaper-layer clock per output; each screen sizes and positions independently (portrait, ultrawide, mixed resolutions)
 - **Screen-aware sizing** — outer ring scales from each monitor's width and height (default ~40% of screen height, adjustable 25–55%)
 - **Bar-aware placement** — auto-insets from the Omarchy bar on the anchored edge, per screen
@@ -30,8 +32,8 @@ All shots use `top-right` with a vertical bar — hour against the bar, rings cu
 - **Ring transparency** — single slider fades both rings (0–100%)
 - **Independent sizing** — layout, ring geometry, text, and fonts are separate controls (see [Sizing](#sizing))
 - **Configurable ring arc** — show 30°–360° of the dial, centered on the focus (defaults by position)
-- **GUI settings panel** — right-click to open; **General**, **Fonts & sizes**, and **Monitors** tabs, live preview, **Reset to defaults**, instant save to `shell.json`
-- **Layout styles** — five presentation styles (orbit, minimal, sunburst, single, digital) at **any** screen position; focus direction and border hugging follow position
+- **GUI settings panel** — right-click to open; **General**, **Fonts & sizes**, **Components**, and **Monitors** tabs, live preview, **Reset to defaults**, instant save to `shell.json`
+- **Layout styles** — two presentation styles (orbit, digital) at **any** screen position, with per-capsule angle/radius offsets for full position control; focus direction and border hugging follow position
 
 ## Requirements
 
@@ -83,18 +85,18 @@ Add or edit the plugin entry in `~/.config/omarchy/shell.json`:
     {
       "id": "MASH2RAFI.orbital-clock",
       "scale": 1,
-      "hourScale": 1,
+      "hourScale": 0.75,
       "dateScale": 1,
       "subtimeScale": 1,
       "ringLabelScale": 1,
-      "position": "middle-right",
+      "position": "top-right",
       "centerLayout": "orbit",
       "use24h": false,
       "showSeconds": true,
       "showDate": true,
-      "accentMode": "contrast",
-      "ringDiameter": 0.40,
-      "ringGap": 48,
+      "accentMode": "theme",
+      "ringDiameter": 0.29,
+      "ringGap": 57,
       "ringArcDegrees": 0,
       "ringTransparency": 1,
       "screenMode": "all",
@@ -108,6 +110,8 @@ Add or edit the plugin entry in `~/.config/omarchy/shell.json`:
 }
 ```
 
+This example shows the common fields only. Per-component color, font, visibility, and position-offset keys (e.g. `hourColor`, `minuteCapsuleFont`, `showRings`, `dateOffsetX`) and `savedLayouts` are omitted here for brevity — see the [Settings reference](#settings-reference) for the complete list, or just use the GUI panel, which writes all of this for you.
+
 After editing `shell.json`:
 
 ```bash
@@ -119,15 +123,16 @@ omarchy restart shell
 
 Right-click the clock on your wallpaper to open the settings overlay (layer-shell popup — floats above windows, not a tiled Hyprland window). Changes apply immediately and are saved to `shell.json`.
 
-The panel has three tabs with a **sticky live preview** at the top. Changes apply immediately via `shell.updateEntryInline()` and are written to `shell.json`. Font pickers use a scrollable dropdown (`FontDropdown`) when the list is longer than six rows.
+The panel has four tabs with a **sticky live preview** at the top. Changes apply immediately via `shell.updateEntryInline()` and are written to `shell.json`. Font pickers use a scrollable dropdown (`FontDropdown`) when the list is longer than six rows.
 
 | Tab | Controls |
 |-----|----------|
-| **General** | Position, layout style, ring diameter, ring spacing, **ring arc**, ring transparency, seconds ring toggle, ring colors, 24h/date toggles |
-| **Fonts & sizes** | Layout size, ring label size, hour/date/subtime sizes, hour & date font, ring label font |
+| **General** | Position, layout style, saved layouts (add/apply/rename/delete), ring diameter, ring spacing, **ring arc**, ring transparency, seconds ring toggle, ring colors, 24h/date toggles |
+| **Fonts & sizes** | Layout size, ring label size, hour/date/subtime/capsule sizes, hour & date font, ring label font |
+| **Components** | Per-component color, font, visibility, and position (offset) overrides for the hour, date, minute capsule, second capsule, and rings/tick labels |
 | **Monitors** | Per-output toggles, display presets, scale-per-monitor, edge margin, bar padding |
 
-**General → Layout → Position** also resets **Ring arc** to that position's default (corner 90°, edge 180°, center 360°). Override with the arc slider afterward.
+**General → Layout → Position** also resets **Ring arc** to that position's default (corner 120°, edge 180°, center 360°). Override with the arc slider afterward.
 
 Each monitor has a **Show clock on this monitor** toggle; **Select all** / **Select none** are at the top of the Monitors tab.
 
@@ -155,20 +160,27 @@ Close with **Esc**, clicking the scrim, or the **Close** button.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `scale` | number | `1` | Layout size — capsule chrome and dial padding (`0.5`–`2.5`) |
-| `hourScale` | number | `1` | Hour numeral (`0.5`–`2.5`) |
+| `hourScale` | number | `0.75` | Hour numeral (`0.5`–`2.5`) |
 | `dateScale` | number | `1` | Date block (`0.5`–`2.5`) |
-| `subtimeScale` | number | `1` | Subtime line and capsule text (`0.5`–`2.5`) |
+| `subtimeScale` | number | `1` | Legacy — no current layout shows a separate subtime line |
+| `minuteCapsuleScale` | number | `1.7` | Minute capsule chrome and text (`0.5`–`2.5`) |
+| `secondCapsuleScale` | number | `1` | Seconds capsule chrome and text (`0.5`–`2.5`) |
 | `ringLabelScale` | number | `1` | Ring tick labels 00–59 (`0.5`–`2.5`) |
-| `position` | string | `middle-right` | Screen anchor — see [Positions](#positions) |
+| `position` | string | `top-right` | Screen anchor — see [Positions](#positions) |
 | `centerLayout` | string | `orbit` | Layout style — see [Layout styles](#layout-styles) |
 | `use24h` | boolean | `false` | 24-hour hour label |
 | `showSeconds` | boolean | `true` | Show outer seconds ring and capsule |
 | `clockEnabled` | boolean | `true` | Master visibility toggle (bar widget) |
 | `showDate` | boolean | `true` | Show date block under the hour |
-| `accentMode` | string | `contrast` | Ring colors — `contrast` (opposite theme bg), `accent`, `theme`, `mono` |
-| `ringDiameter` | number | `0.40` | Outer ring size (% of screen height, 25–55%) — independent of layout size |
-| `ringGap` | number | `48` | Gap between minute and seconds rings (px) — independent of layout size |
-| `ringArcDegrees` | number | `0` | Visible ring arc (30–360°). `0` = position default (corner 90°, edge 180°, center 360°) |
+| `accentMode` | string | `theme` | Ring colors — `contrast` (opposite theme bg), `accent`, `theme` (foreground/muted), `mono` |
+| `ringDiameter` | number | `0.29` | Outer ring size (% of screen height, 25–55%) — independent of layout size |
+| `ringGap` | number | `57` | Gap between minute and seconds rings (px) — independent of layout size |
+| `ringArcDegrees` | number | `0` | Visible ring arc (30–360°). `0` = position default (corner 120°, edge 180°, center 360°) |
+| `minuteCapsuleAngleOffset` | number | `12` | Minute capsule angle nudge, degrees (`-90`–`90`) |
+| `secondCapsuleAngleOffset` | number | `-18` | Seconds capsule angle nudge, degrees (`-90`–`90`) |
+| `minuteCapsuleRadiusOffset` | number | `1` | Minute capsule radius nudge, px (`-40`–`40`) |
+| `secondCapsuleRadiusOffset` | number | `0` | Seconds capsule radius nudge, px (`-40`–`40`) |
+| `ringRotationOffset` | number | `0` | Rotates which tick sits at the dial focus, degrees (`-180`–`180`); doesn't move the arc or capsules |
 | `ringTransparency` | number | `1` | Ring visibility for both rings (0–100%) |
 | `screenMode` | string | `all` | Quick preset — `all`, `selected` (custom picks), `primary`, `focused`, `external` |
 | `selectedMonitors` | list | `[]` | Monitor names when using custom selection (set via Monitors tab toggles) |
@@ -178,8 +190,30 @@ Close with **Esc**, clicking the scrim, or the **Close** button.
 | `barPadding` | number | `0` | Extra inset from bar; `0` = auto-detect |
 | `clockFont` | string | `Liberation Sans` | Hour and date font |
 | `labelFont` | string | `JetBrainsMono Nerd Font,…` | Ring tick label font |
+| `savedLayouts` | list | `[]` | Named appearance presets (`{id, name, settings}`); managed from the **General** tab, not hand-edited |
 
-Omitted keys fall back sensibly: `dateScale` / `subtimeScale` inherit `hourScale`; `ringLabelScale` inherits `scale` on first load.
+#### Per-component overrides (Components tab)
+
+All color keys are `#RRGGBB` hex strings; empty (`""`) means "use the theme." All font keys are font-family strings; empty means "match the clock/label font." All are independent per component — none affect any other component.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `showHour` | boolean | `true` | Show the hour numeral |
+| `hourColor` | string | `""` | Overrides the theme-derived hour color |
+| `hourFont` | string | `""` | Overrides the clock font for the hour numeral only |
+| `hourOffsetX` / `hourOffsetY` | number | `0` | Nudges the hour+date+subtime stack, px (`-40`–`40`) |
+| `dateColor` | string | `""` | Overrides the weekday-line color; the muted date/AM-PM lines stay theme-derived |
+| `dateFont` | string | `""` | Overrides both date fonts (weekday and date/AM-PM lines) |
+| `dateOffsetX` / `dateOffsetY` | number | `0` | Nudges the date block, px (`-40`–`40`) |
+| `showMinuteCapsule` / `showSecondCapsule` | boolean | `true` | Show that capsule, independent of layout style / seconds |
+| `minuteCapsuleColor` / `secondCapsuleColor` | string | `""` | Overrides that capsule's text color |
+| `minuteCapsuleFont` / `secondCapsuleFont` | string | `""` | Overrides that capsule's font |
+| `showRings` | boolean | `true` | Show the ring dial (dots + labels + guide) at all |
+| `showRingLabels` | boolean | `true` | Show the 00–59 tick labels; dots stay visible either way |
+| `minuteRingColor` / `secondRingColor` | string | `""` | Overrides that ring's dot color |
+| `ringLabelColor` | string | `""` | Overrides both rings' tick-label color; empty matches each ring's own dot color |
+
+Omitted keys fall back sensibly: `dateScale` / `subtimeScale` inherit `hourScale`; `ringLabelScale` inherits `scale`; `minuteCapsuleScale` / `secondCapsuleScale` inherit `subtimeScale` on first load.
 
 ### Sizing
 
@@ -194,7 +228,9 @@ All size sliders are **independent** — changing one does not change the others
 | Ring label size | `ringLabelScale` | Fonts & sizes | 00–59 tick labels on the rings |
 | Hour size | `hourScale` | Fonts & sizes | Large hour numeral |
 | Date size | `dateScale` | Fonts & sizes | Date and weekday block |
-| Subtime size | `subtimeScale` | Fonts & sizes | MM:SS under the hour and capsule text |
+| Minute capsule size | `minuteCapsuleScale` | Fonts & sizes | Minute capsule chrome and text |
+| Second capsule size | `secondCapsuleScale` | Fonts & sizes | Seconds capsule chrome and text |
+| Subtime size (legacy) | `subtimeScale` | Fonts & sizes | No current layout shows a separate subtime line — kept as a fallback default for `minuteCapsuleScale`/`secondCapsuleScale` on older configs |
 
 `perMonitorScale` (Monitors tab) only multiplies **layout size** (`scale`) by monitor height — not ring diameter, text sizes, or arc.
 
@@ -214,7 +250,7 @@ Ring geometry is driven by **position** (focus direction and border hugging). **
 |---------------|----------|-------------|
 | Center | `middle-center` | **360°** full dial |
 | Middle edge | `middle-left`, `middle-right`, `top-center`, `bottom-center` | **180°** |
-| Corner | `top-left`, `top-right`, `bottom-left`, `bottom-right` | **90°** |
+| Corner | `top-left`, `top-right`, `bottom-left`, `bottom-right` | **120°** |
 
 Changing **Position** resets the arc slider to that default. Set **Ring arc** on the General tab to override (30–360°). Store `0` or omit `ringArcDegrees` in `shell.json` to keep position-based defaults on load.
 
@@ -222,17 +258,43 @@ The hour sits at the center of the rings at every position. **Ring diameter** sc
 
 ### Layout styles
 
-`centerLayout` controls **presentation only** — capsules, subtime placement, ring weight, and guide ring visibility. Ring focus and border hugging follow `position`; arc span is set by **Ring arc**.
+`centerLayout` controls **presentation only** — capsules, subtime placement, ring visibility/weight, and guide ring visibility. Ring focus and border hugging follow `position`; arc span is set by **Ring arc**.
 
 | Style | Description |
 |-------|-------------|
-| `orbit` | Default — minute/second capsules toward screen center |
-| `minimal` | No capsules; minute/second under the hour |
-| `sunburst` | Capsules at 12 & 6 (center) or at the two ends of the visible arc (corners/edges) |
-| `single` | One combined `MM:SS` capsule |
-| `digital` | Bold hour, faint rings, no guide ring |
+| `orbit` | Default — minute/second capsules, with position tunable per-capsule (angle + radius) in the **Components** tab |
+| `digital` | Unified `H:MM` readout at one size with small trailing seconds; rings and guide ring hidden, dial footprint tightened |
 
-Legacy values in `shell.json` are mapped automatically: `dial`/`split`/`arc` → `orbit`, `stack` → `minimal`, `single-focus` → `single`.
+The former `sunburst` style (capsules spread to the arc ends) is now just `orbit` with wide capsule angle offsets — set the minute/second capsule angle offset sliders in **Components** toward ±90° to recreate it.
+
+Legacy values in `shell.json` are mapped automatically to `orbit`: `dial`, `split`, `arc`, `stack`, `minimal`, `single`, `single-focus`, `sunburst`.
+
+### Component customization
+
+The **Components** tab holds per-component overrides for five pieces — **Hour**, **Date**, **Minute capsule**, **Second capsule**, and **Rings & tick labels** — each in its own card with whichever of these apply:
+
+- **Color** — a hex override (`#RRGGBB`) with a live swatch and an **Auto** button to clear it back to the theme-derived color.
+- **Font** — a dropdown of the same curated font list used elsewhere; the first option is always "Auto" (match the clock/label font).
+- **Visibility** — an independent show/hide toggle (e.g. you can hide the seconds ring while keeping the seconds capsule, or vice versa).
+- **Position** — a small nudge: pixel offsets for hour/date, angle + radius offsets for each capsule, or a rotation offset for the ring ticks.
+
+These are pure overrides layered on top of everything else — `accentMode`, `scale`, `hourScale`, etc. still apply normally to anything you haven't overridden here. Size controls for these same pieces live on **Fonts & sizes**, not here, to avoid duplicating the same setting in two tabs.
+
+Position overrides are intentionally small (nudges, not free placement) — the clock's layout is one global `position` anchor plus a relative-layout engine that places every piece relative to the dial, so unbounded offsets risk pushing content past the screen edge. If you need one component noticeably far from its default spot, `position` and `centerLayout` are the bigger levers; the Components offsets are for fine-tuning.
+
+### Saved layouts
+
+The **General** tab has a **Saved layouts** section for managing named appearance presets:
+
+| Action | Effect |
+|--------|--------|
+| **Save current as new layout** | Snapshots everything about the current look under a name you choose |
+| **Apply** | Replaces your current settings with that layout's snapshot |
+| **Update with current** | Overwrites a saved layout with whatever the clock looks like right now |
+| **Rename** | Changes just the layout's name |
+| **Delete** | Removes the saved layout |
+
+A layout snapshot is appearance only — it deliberately excludes `screenMode`, `selectedMonitors`, `perMonitorScale`, `scaleReferenceHeight`, and `clockEnabled`, so applying a saved look never moves the clock to a different monitor or turns it off. Layouts are stored in `savedLayouts` in `shell.json` and aren't affected by **Reset to defaults**, which only resets the current look.
 
 ## Multi-monitor
 
@@ -297,13 +359,15 @@ omarchy-orbital-clock/
 ├── RingCanvas.qml         # 60-tick ring dial (minute + second rings)
 ├── DateColumn.qml         # Shared date/weekday/AM-PM column
 ├── TimeCapsule.qml        # Minute/second pill capsule
+├── ShellConfigWatcher.qml # Reads shell.json directly; live-updates around a host caching limitation
 ├── PluginConfig.js        # Shared shell.json plugin entry helpers
 ├── SettingsPanel.qml      # GUI settings overlay (panel entry point)
 ├── SettingsSlider.qml     # Reusable labeled slider row for settings
+├── ColorField.qml         # Hex color override field + swatch for settings
 ├── FontDropdown.qml       # Scrollable font picker for settings
 ├── FontOptions.js         # Curated clock/label font lists
-├── ClockModel.js          # Time formatting and ring rotation math
-├── ClockTheme.js          # Theme palette mapping (contrast/accent/theme/mono)
+├── ClockModel.js          # Time formatting, layout geometry, ring math, settings read/write
+├── ClockTheme.js          # Theme palette mapping (contrast/accent/theme/mono) + override merging
 ├── README.md
 └── LICENSE
 ```
@@ -321,6 +385,17 @@ Or rescan without a full restart:
 ```bash
 omarchy-shell shell rescanPlugins
 ```
+
+### Validating changes
+
+Before deploying, per the [Omarchy plugin development guide](https://plugins.omarchy.org/develop.html):
+
+```bash
+omarchy plugin validate ~/Projects/omarchy-orbital-clock
+qmllint -I /usr/share/omarchy/shell ~/Projects/omarchy-orbital-clock/*.qml
+```
+
+Both should exit clean (no output, exit code 0). `qmllint` also works without `-I` (it just can't resolve `qs.Commons`/`qs.Ui` types then, so it checks less).
 
 ### Debugging
 
@@ -343,7 +418,7 @@ Common issues:
 |---------|-----|
 | Clock not visible | QML load error — check logs above |
 | Settings won't open | QML error in panel — look for `SettingsPanel` / `SettingsSlider` / `FontDropdown` in logs |
-| Settings change but clock doesn't update | Restart shell once; `Service.qml` reads `shell.shellConfig` for live updates |
+| Settings change but clock doesn't update | Should update live within ~2s via `ShellConfigWatcher.qml` (no restart needed); if it doesn't, check `~/.config/omarchy/shell.json` parses as valid JSON — a parse failure keeps the last good value |
 | Clock under bar | Increase **Edge margin** or **Bar padding** (Monitors tab) |
 | Rings too large/small | **Ring diameter** or **Layout size** (General / Fonts & sizes) |
 | Wrong arc span | **Ring arc** on General tab; changing position resets arc to default |
@@ -353,14 +428,16 @@ Common issues:
 
 ### Architecture notes
 
-- **`Service.qml`** — one bottom-layer `PanelWindow` per monitor; reads normalized settings from `Clock.readSettings()` via a `cfg` object; applies bar-aware placement and per-monitor layout scale. Right-click summons the settings panel.
-- **`SettingsPanel.qml`** — panel entry point: three-tab overlay with live preview. Uses a single `draft` settings object updated through `patchDraft()` → `Clock.mergeSettings()` → `shell.updateEntryInline()`.
-- **`SettingsSlider.qml`** — reusable labeled slider row (`import qs.Ui` for `PanelSlider`). Used on General and Fonts & sizes tabs. Same-directory QML components load by type name — no extra import line needed in the panel.
-- **`OrbitalClockFace.qml`** — composes rings, hour/date column, and capsules. Layout/text scales are independent properties; ring arc comes from `Clock.layoutSpec(position, centerLayout, ringArcDegrees)`.
-- **`RingCanvas.qml`** — Canvas ring dial with separate `labelScale` (tick labels) and `chromeScale` (guide strokes). Arc clipping via `arcFrom` / `arcTo`.
-- **`ClockModel.js`** — `.pragma library` module: time parts, `readSettings` / `mergeSettings` / `settingsToEntry`, placement geometry, layout specs, arc rules, ring math.
-- **`ClockTheme.js`** — `accentMode` palette mapping (contrast / accent / theme / mono).
-- **`PluginConfig.js`** — `entryOrDefault()` and `defaultSettings()` helpers.
+- **`Service.qml`** — one bottom-layer `PanelWindow` per monitor; reads normalized settings from `Clock.readSettings()` via a `cfg` object, sourced through a `ShellConfigWatcher` (see below); applies bar-aware placement and per-monitor layout scale. Right-click summons the settings panel.
+- **`SettingsPanel.qml`** — panel entry point: four-tab overlay with live preview. Uses a single `draft` settings object updated through `patchDraft()` → `Clock.mergeSettings()` → `shell.updateEntryInline()`. Also reads its initial state through `ShellConfigWatcher` so reopening the panel never shows stale values.
+- **`ShellConfigWatcher.qml`** — works around a host limitation: the scoped shell object plugins receive (`services/PluginShellApi.qml` in the Omarchy shell) sets `barConfig` once at creation via a plain value (`barConfig: shell.publicBarConfig()`, not `Qt.binding(...)`), and that scoped object is cached for the plugin's whole lifetime keyed only by static capabilities — so it never reflects settings-panel edits made afterward, only a full shell restart does. This component reads `~/.config/omarchy/shell.json` directly with `watchChanges: true` instead, so both `Service.qml` and `SettingsPanel.qml` see edits within ~2 seconds with no restart.
+- **`SettingsSlider.qml`** — reusable labeled slider row (`import qs.Ui` for `PanelSlider`). Used on General, Fonts & sizes, and Components tabs. Same-directory QML components load by type name — no extra import line needed in the panel.
+- **`ColorField.qml`** — hex color override field: swatch + validated text input + an **Auto** button that clears back to `""` (theme-derived). Used throughout the Components tab.
+- **`OrbitalClockFace.qml`** — composes rings, hour/date column, and capsules. Layout/text scales are independent properties; ring arc comes from `Clock.layoutSpec(position, centerLayout, ringArcDegrees)`; per-component color/font overrides are merged in via `Theme.applyOverrides()`.
+- **`RingCanvas.qml`** — Canvas ring dial with independent minute/second dot colors and label colors, separate `labelScale` (tick labels) and `chromeScale` (guide strokes), and a `showLabels` toggle. Arc clipping via `arcFrom` / `arcTo`.
+- **`ClockModel.js`** — `.pragma library` module: time parts, `readSettings` / `mergeSettings` / `settingsToEntry`, placement geometry, layout specs, arc rules, ring math, and the saved-layout preset functions (`saveLayoutPreset`, `applyLayoutSnapshot`, `updateLayoutPreset`, `removeLayoutPreset`).
+- **`ClockTheme.js`** — `accentMode` palette mapping (contrast / accent / theme / mono) plus `applyOverrides()` for layering per-component color overrides on top of it.
+- **`PluginConfig.js`** — `entryOrDefault()` and `defaultSettings()` helpers, plus `findEntryInBarConfig()` (the raw-object lookup `ShellConfigWatcher` and `findBarEntry` both use).
 - **`FontDropdown.qml`** + **`FontOptions.js`** — scrollable font picker and curated font lists.
 - **`DateColumn.qml`** / **`TimeCapsule.qml`** — shared date block and MM/SS capsule widgets.
 

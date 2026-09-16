@@ -18,6 +18,10 @@ Canvas {
   property bool showSeconds: true
   property real ringStrength: 1
   property color ringColor: Color.foreground
+  property color secondRingColor: canvas.ringColor
+  property color minuteLabelColor: canvas.ringColor
+  property color secondLabelColor: canvas.secondRingColor
+  property bool showLabels: true
   property real labelScale: 1
   property real chromeScale: 1
   property string labelFont: Style.font.family
@@ -38,15 +42,15 @@ Canvas {
     return Clock.isRingLabelVisible(angle, canvas.fullRing, canvas.arcFromArg, canvas.arcToArg)
   }
 
-  function drawDotRing(ctx, radius, progress) {
+  function drawDotRing(ctx, radius, progress, dotColor, labelColor) {
     var s = canvas.labelScale
     var fontPx = Math.max(7, Math.round(8 * s))
     var dotR = Math.max(1.1, 1.3 * s)
     var strength = canvas.ringStrength
-    var ringColor = canvas.ringColor
     var rotation = Clock.ringRotationRad(progress, canvas.focusAngle)
     var angles = Clock.ringAngles()
-    var font = "500 " + fontPx + "px \"" + canvas.labelFont + "\""
+    var fontFamilies = canvas.labelFont.split(",").map(function(f) { return "\"" + f.trim() + "\"" }).join(", ")
+    var font = "500 " + fontPx + "px " + fontFamilies
     var labelRBase = radius + Math.round(10 * s)
     var clipArc = canvas.arcClip
 
@@ -74,22 +78,24 @@ Canvas {
         alpha = Math.min(1, alpha * 1.15)
 
       ctx.beginPath()
-      ctx.fillStyle = Theme.ink(ringColor, alpha)
+      ctx.fillStyle = Theme.ink(dotColor, alpha)
       ctx.arc(px, py, dotR, 0, Math.PI * 2)
       ctx.fill()
 
-      var labelR = labelRBase
-      ctx.save()
-      ctx.translate(canvas.cx + Math.cos(angle) * labelR, canvas.cy + Math.sin(angle) * labelR)
-      ctx.rotate(angle + Math.PI / 2)
-      var labelAlpha = onFace ? (0.44 + fade * 0.52) : (0.24 + fade * 0.28)
-      if (clipArc)
-        labelAlpha *= Clock.ringEdgeMeetFade(worldAngle, canvas.arcFrom, canvas.arcTo, canvas.arcEdgeFade)
-      if (clipArc && canvas.arcEmphasis)
-        labelAlpha = Math.min(1, labelAlpha * 1.12)
-      ctx.fillStyle = Theme.ink(ringColor, Math.min(1, labelAlpha * strength))
-      ctx.fillText(Clock.pad2(i), 0, 0)
-      ctx.restore()
+      if (canvas.showLabels) {
+        var labelR = labelRBase
+        ctx.save()
+        ctx.translate(canvas.cx + Math.cos(angle) * labelR, canvas.cy + Math.sin(angle) * labelR)
+        ctx.rotate(angle + Math.PI / 2)
+        var labelAlpha = onFace ? (0.44 + fade * 0.52) : (0.24 + fade * 0.28)
+        if (clipArc)
+          labelAlpha *= Clock.ringEdgeMeetFade(worldAngle, canvas.arcFrom, canvas.arcTo, canvas.arcEdgeFade)
+        if (clipArc && canvas.arcEmphasis)
+          labelAlpha = Math.min(1, labelAlpha * 1.12)
+        ctx.fillStyle = Theme.ink(labelColor, Math.min(1, labelAlpha * strength))
+        ctx.fillText(Clock.pad2(i), 0, 0)
+        ctx.restore()
+      }
     }
 
     ctx.restore()
@@ -134,8 +140,8 @@ Canvas {
       }
     }
 
-    canvas.drawDotRing(ctx, canvas.minuteRadius, canvas.minuteProgress)
+    canvas.drawDotRing(ctx, canvas.minuteRadius, canvas.minuteProgress, canvas.ringColor, canvas.minuteLabelColor)
     if (canvas.showSeconds)
-      canvas.drawDotRing(ctx, canvas.secondRadius, canvas.secondProgress)
+      canvas.drawDotRing(ctx, canvas.secondRadius, canvas.secondProgress, canvas.secondRingColor, canvas.secondLabelColor)
   }
 }

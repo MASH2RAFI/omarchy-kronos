@@ -114,6 +114,16 @@ function palette(mode, colors) {
   }
 }
 
+function applyOverrides(base, overrides) {
+  var out = {}
+  for (var key in base) out[key] = base[key]
+  for (var okey in overrides) {
+    var value = overrides[okey]
+    if (value !== undefined && value !== null && value !== "") out[okey] = value
+  }
+  return out
+}
+
 function ink(color, alpha) {
   return Qt.rgba(color.r, color.g, color.b, alpha)
 }

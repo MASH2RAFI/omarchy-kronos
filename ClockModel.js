@@ -49,7 +49,7 @@ function roundScale(value) {
   return Math.round(Number(value) * 100) / 100
 }
 
-function readTextScale(entry, key, legacyKeys) {
+function readTextScale(entry, key, legacyKeys, fallback) {
   entry = entry || {}
   if (entry[key] !== undefined && entry[key] !== null)
     return clampTextScale(entry[key])
@@ -61,7 +61,27 @@ function readTextScale(entry, key, legacyKeys) {
         return clampTextScale(entry[legacy])
     }
   }
-  return 1
+  return fallback !== undefined ? fallback : 1
+}
+
+var HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/
+
+function readColorOverride(entry, key) {
+  entry = entry || {}
+  var value = entry[key]
+  if (value === undefined || value === null) return ""
+  var s = String(value)
+  return HEX_COLOR_RE.test(s) ? s : ""
+}
+
+function readFontOverride(entry, key) {
+  entry = entry || {}
+  var value = entry[key]
+  return value === undefined || value === null ? "" : String(value)
+}
+
+function clampOffset(value, min, max, fallback) {
+  return clampNumber(value, fallback !== undefined ? fallback : 0, min, max, true)
 }
 
 function hourSizeFromScale(hourScale, sizeFactor) {
@@ -91,7 +111,7 @@ function defaultArcDegreesForPosition(position) {
   var zone = positionZone(position)
   if (zone === "center") return 360
   if (zone === "middle") return 180
-  return 90
+  return 120
 }
 
 function clampRingArcDegrees(value, position) {
@@ -110,6 +130,97 @@ function readRingTransparency(entry) {
   return clampRingOpacity((minute + second) / 2)
 }
 
+// Fields that describe *where/whether* the clock runs rather than how it
+// looks. Saved layouts are appearance presets, so applying one must never
+// touch these, and a snapshot never stores them (or itself, recursively).
+var LAYOUT_PRESET_EXCLUDED_KEYS = [
+  "screenMode", "selectedMonitors", "perMonitorScale", "scaleReferenceHeight",
+  "clockEnabled", "savedLayouts"
+]
+
+function normalizeSavedLayouts(value) {
+  if (!Array.isArray(value)) return []
+  var out = []
+  for (var i = 0; i < value.length; i++) {
+    var entry = value[i]
+    if (!entry || typeof entry !== "object") continue
+    var id = String(entry.id || "").trim()
+    var name = String(entry.name || "").trim()
+    if (id === "" || name === "") continue
+    var settings = (entry.settings && typeof entry.settings === "object") ? entry.settings : {}
+    out.push({ id: id, name: name, settings: snapshotForLayout(settings) })
+  }
+  return out
+}
+
+function snapshotForLayout(settings) {
+  settings = settings || {}
+  var out = {}
+  for (var key in settings) {
+    if (LAYOUT_PRESET_EXCLUDED_KEYS.indexOf(key) >= 0) continue
+    out[key] = settings[key]
+  }
+  return out
+}
+
+function applyLayoutSnapshot(currentSettings, snapshot) {
+  var merged = {}
+  currentSettings = currentSettings || {}
+  snapshot = snapshot || {}
+  for (var key in currentSettings) merged[key] = currentSettings[key]
+  for (var skey in snapshot) {
+    if (LAYOUT_PRESET_EXCLUDED_KEYS.indexOf(skey) >= 0) continue
+    merged[skey] = snapshot[skey]
+  }
+  return merged
+}
+
+function generateLayoutId() {
+  return "layout-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 46656).toString(36)
+}
+
+function saveLayoutPreset(savedLayouts, name, settings) {
+  var list = normalizeSavedLayouts(savedLayouts).slice()
+  var trimmed = String(name || "").trim()
+  if (trimmed === "") return list
+  list.push({ id: generateLayoutId(), name: trimmed, settings: snapshotForLayout(settings) })
+  return list
+}
+
+function updateLayoutPreset(savedLayouts, id, updates) {
+  var list = normalizeSavedLayouts(savedLayouts).slice()
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== id) continue
+    var next = { id: id, name: list[i].name, settings: list[i].settings }
+    if (updates && updates.name !== undefined) {
+      var trimmed = String(updates.name || "").trim()
+      if (trimmed !== "") next.name = trimmed
+    }
+    if (updates && updates.settings !== undefined)
+      next.settings = snapshotForLayout(updates.settings)
+    list[i] = next
+    break
+  }
+  return list
+}
+
+function removeLayoutPreset(savedLayouts, id) {
+  var list = normalizeSavedLayouts(savedLayouts)
+  var out = []
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== id) out.push(list[i])
+  }
+  return out
+}
+
+function findLayoutPreset(savedLayouts, id) {
+  var list = normalizeSavedLayouts(savedLayouts)
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) return list[i]
+  }
+  return null
+}
+
 function mergeSettings(pluginId, base, updates) {
   var merged = {}
   base = base || {}
@@ -121,26 +232,53 @@ function mergeSettings(pluginId, base, updates) {
 
 function readSettings(entry) {
   entry = entry || {}
-  var position = String(entry.position || "middle-right")
+  var position = String(entry.position || "top-right")
   return {
     scale: clampScale(entry.scale !== undefined ? entry.scale : 1),
-    hourScale: readTextScale(entry, "hourScale"),
+    hourScale: readTextScale(entry, "hourScale", null, 0.75),
     dateScale: readTextScale(entry, "dateScale", "hourScale"),
     subtimeScale: readTextScale(entry, "subtimeScale", "hourScale"),
     ringLabelScale: readTextScale(entry, "ringLabelScale", "scale"),
+    minuteCapsuleScale: readTextScale(entry, "minuteCapsuleScale", "subtimeScale", 1.7),
+    secondCapsuleScale: readTextScale(entry, "secondCapsuleScale", "subtimeScale"),
+    hourColor: readColorOverride(entry, "hourColor"),
+    dateColor: readColorOverride(entry, "dateColor"),
+    minuteCapsuleColor: readColorOverride(entry, "minuteCapsuleColor"),
+    secondCapsuleColor: readColorOverride(entry, "secondCapsuleColor"),
+    minuteRingColor: readColorOverride(entry, "minuteRingColor"),
+    secondRingColor: readColorOverride(entry, "secondRingColor"),
+    ringLabelColor: readColorOverride(entry, "ringLabelColor"),
+    hourFont: readFontOverride(entry, "hourFont"),
+    dateFont: readFontOverride(entry, "dateFont"),
+    minuteCapsuleFont: readFontOverride(entry, "minuteCapsuleFont"),
+    secondCapsuleFont: readFontOverride(entry, "secondCapsuleFont"),
+    showHour: entry.showHour !== false,
+    showMinuteCapsule: entry.showMinuteCapsule !== false,
+    showSecondCapsule: entry.showSecondCapsule !== false,
+    showRingLabels: entry.showRingLabels !== false,
+    showRings: entry.showRings !== false,
+    hourOffsetX: clampOffset(entry.hourOffsetX, -40, 40),
+    hourOffsetY: clampOffset(entry.hourOffsetY, -40, 40),
+    dateOffsetX: clampOffset(entry.dateOffsetX, -40, 40),
+    dateOffsetY: clampOffset(entry.dateOffsetY, -40, 40),
+    minuteCapsuleAngleOffset: clampOffset(entry.minuteCapsuleAngleOffset, -90, 90, 12),
+    secondCapsuleAngleOffset: clampOffset(entry.secondCapsuleAngleOffset, -90, 90, -18),
+    minuteCapsuleRadiusOffset: clampOffset(entry.minuteCapsuleRadiusOffset, -40, 40, 1),
+    secondCapsuleRadiusOffset: clampOffset(entry.secondCapsuleRadiusOffset, -40, 40),
+    ringRotationOffset: clampOffset(entry.ringRotationOffset, -180, 180),
     position: position,
     centerLayout: resolveLayoutStyle(entry.centerLayout),
     use24h: entry.use24h === true,
     showSeconds: entry.showSeconds !== false,
     showDate: entry.showDate !== false,
     clockEnabled: entry.clockEnabled !== false,
-    accentMode: String(entry.accentMode || "contrast"),
+    accentMode: String(entry.accentMode || "theme"),
     margin: clampMargin(entry.margin !== undefined ? entry.margin : 12),
     barPadding: Math.max(0, Math.round(Number(entry.barPadding) || 0)),
     clockFont: String(entry.clockFont || "Liberation Sans"),
     labelFont: String(entry.labelFont || "JetBrainsMono Nerd Font,JetBrainsMono NF"),
-    ringDiameter: clampRingDiameter(entry.ringDiameter !== undefined ? entry.ringDiameter : 0.40),
-    ringGap: clampRingGap(entry.ringGap !== undefined ? entry.ringGap : 48),
+    ringDiameter: clampRingDiameter(entry.ringDiameter !== undefined ? entry.ringDiameter : 0.29),
+    ringGap: clampRingGap(entry.ringGap !== undefined ? entry.ringGap : 57),
     ringArcDegrees: clampRingArcDegrees(entry.ringArcDegrees, position),
     ringTransparency: readRingTransparency(entry),
     screenMode: normalizeScreenMode(String(entry.screenMode || "all")),
@@ -148,7 +286,8 @@ function readSettings(entry) {
     perMonitorScale: entry.perMonitorScale === true,
     scaleReferenceHeight: clampReferenceHeight(
       entry.scaleReferenceHeight !== undefined ? entry.scaleReferenceHeight : 1080
-    )
+    ),
+    savedLayouts: normalizeSavedLayouts(entry.savedLayouts)
   }
 }
 
@@ -161,6 +300,33 @@ function settingsToEntry(pluginId, settings) {
     dateScale: settings.dateScale,
     subtimeScale: settings.subtimeScale,
     ringLabelScale: settings.ringLabelScale,
+    minuteCapsuleScale: settings.minuteCapsuleScale,
+    secondCapsuleScale: settings.secondCapsuleScale,
+    hourColor: settings.hourColor,
+    dateColor: settings.dateColor,
+    minuteCapsuleColor: settings.minuteCapsuleColor,
+    secondCapsuleColor: settings.secondCapsuleColor,
+    minuteRingColor: settings.minuteRingColor,
+    secondRingColor: settings.secondRingColor,
+    ringLabelColor: settings.ringLabelColor,
+    hourFont: settings.hourFont,
+    dateFont: settings.dateFont,
+    minuteCapsuleFont: settings.minuteCapsuleFont,
+    secondCapsuleFont: settings.secondCapsuleFont,
+    showHour: settings.showHour,
+    showMinuteCapsule: settings.showMinuteCapsule,
+    showSecondCapsule: settings.showSecondCapsule,
+    showRingLabels: settings.showRingLabels,
+    showRings: settings.showRings,
+    hourOffsetX: settings.hourOffsetX,
+    hourOffsetY: settings.hourOffsetY,
+    dateOffsetX: settings.dateOffsetX,
+    dateOffsetY: settings.dateOffsetY,
+    minuteCapsuleAngleOffset: settings.minuteCapsuleAngleOffset,
+    secondCapsuleAngleOffset: settings.secondCapsuleAngleOffset,
+    minuteCapsuleRadiusOffset: settings.minuteCapsuleRadiusOffset,
+    secondCapsuleRadiusOffset: settings.secondCapsuleRadiusOffset,
+    ringRotationOffset: settings.ringRotationOffset,
     position: settings.position,
     centerLayout: resolveLayoutStyle(settings.centerLayout),
     use24h: settings.use24h,
@@ -181,7 +347,8 @@ function settingsToEntry(pluginId, settings) {
     screenMode: settings.screenMode,
     selectedMonitors: (settings.selectedMonitors || []).slice(),
     perMonitorScale: settings.perMonitorScale,
-    scaleReferenceHeight: settings.scaleReferenceHeight
+    scaleReferenceHeight: settings.scaleReferenceHeight,
+    savedLayouts: normalizeSavedLayouts(settings.savedLayouts)
   }
 }
 
@@ -327,7 +494,6 @@ function clockGeometry(position, outerRadius, labelPad, hourW, hourOnlyH, dateBe
   var arcReach = R + bleed
   var needCx = hourInset(hourW, labelPad)
   var needCy = hourInset(hourOnlyH, labelPad)
-  var inwardSpan = R + edgePad + bleed
   var fullSpan = R * 2 + bleed * 2
   var pos = parsePosition(position)
   var lk = pos.layoutKind
@@ -349,8 +515,8 @@ function clockGeometry(position, outerRadius, labelPad, hourW, hourOnlyH, dateBe
         cx = needCx
         dialW = cx + arcReach
       } else {
-        dialW = inwardSpan
-        cx = dialW - edgePad
+        dialW = needCx + arcReach
+        cx = dialW - needCx
       }
     } else {
       dialW = fullSpan
@@ -621,14 +787,17 @@ function focusAngleForPosition(position) {
   return parsePosition(position).focusAngle
 }
 
-var LAYOUT_STYLES = ["orbit", "minimal", "sunburst", "single", "digital"]
+var LAYOUT_STYLES = ["orbit", "digital"]
 
 var LEGACY_LAYOUT_ALIASES = {
   dial: "orbit",
-  stack: "minimal",
+  stack: "orbit",
   split: "orbit",
   arc: "orbit",
-  "single-focus": "single"
+  minimal: "orbit",
+  single: "orbit",
+  "single-focus": "orbit",
+  sunburst: "orbit"
 }
 
 function normalizeLayoutStyle(value) {
@@ -645,47 +814,23 @@ function resolveLayoutStyle(layoutStyle) {
 
 function layoutStyleOptions() {
   return [
-    { value: "orbit", label: "Orbit — capsules toward screen center" },
-    { value: "minimal", label: "Minimal — no capsules, subtime under hour" },
-    { value: "sunburst", label: "Sunburst — capsules at arc ends (12 & 6 on center)" },
-    { value: "single", label: "Single — one combined capsule" },
-    { value: "digital", label: "Digital — bold hour, faint rings" }
+    { value: "orbit", label: "Orbit — minute/second capsules, position tunable in Components" },
+    { value: "digital", label: "Digital — unified H:MM readout, small seconds, no rings" }
   ]
 }
 
-function applyLayoutStyle(spec, style, focus, zone) {
+function applyLayoutStyle(spec, style) {
   if (!spec) return
   style = normalizeLayoutStyle(style)
-  zone = zone || "middle"
 
   switch (style) {
-    case "minimal":
-      spec.showCapsules = false
-      spec.showCenterSubtime = true
-      break
-    case "sunburst":
-      if (zone === "center") {
-        spec.minuteCapsuleAngle = -Math.PI / 2
-        spec.secondCapsuleAngle = Math.PI / 2
-      } else if (isFinite(spec.arcFrom) && isFinite(spec.arcTo)) {
-        spec.minuteCapsuleAngle = spec.arcFrom
-        spec.secondCapsuleAngle = spec.arcTo
-      } else {
-        var half = zone === "middle" ? Math.PI / 2 : Math.PI / 4
-        spec.minuteCapsuleAngle = focus - half
-        spec.secondCapsuleAngle = focus + half
-      }
-      break
-    case "single":
-      spec.singleCapsule = true
-      spec.showCenterSubtime = false
-      break
     case "digital":
       spec.showCapsules = false
-      spec.showCenterSubtime = true
-      spec.ringStrength = 0.32
+      spec.digitalReadout = true
       spec.hourSizeFactor = 1.12
+      spec.dialSizeFactor = 0.55
       spec.showGuideRing = false
+      spec.showRings = false
       break
     default:
       break
@@ -702,7 +847,7 @@ function layoutSpec(position, layoutStyle, ringArcDegrees) {
     variant: style,
     showCapsules: true,
     singleCapsule: false,
-    showCenterSubtime: false,
+    digitalReadout: false,
     dateBelowDial: zone === "center",
     dateInHourColumn: zone !== "center",
     dateAboveHour: pos.indexOf("bottom") === 0,
@@ -713,7 +858,9 @@ function layoutSpec(position, layoutStyle, ringArcDegrees) {
     focusAngle: focus,
     ringStrength: 1,
     hourSizeFactor: 1,
+    dialSizeFactor: 1,
     showGuideRing: true,
+    showRings: true,
     fullRing: false,
     arcFrom: null,
     arcTo: null,
@@ -721,7 +868,7 @@ function layoutSpec(position, layoutStyle, ringArcDegrees) {
   }
 
   applyPositionRingRules(spec, pos, ringArcDegrees)
-  applyLayoutStyle(spec, style, focus, zone)
+  applyLayoutStyle(spec, style)
   return spec
 }
 
