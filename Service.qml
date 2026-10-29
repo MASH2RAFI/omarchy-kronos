@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
@@ -24,7 +23,13 @@ Item {
   }
   readonly property var pos: Clock.parsePosition(root.cfg.position)
 
-  property string internalMonitorName: ""
+  // Built-in panel for the primary/external screen modes, found from monitor
+  // names Quickshell already tracks (no external command). Hyprland's list
+  // also covers a disabled built-in panel (lid closed), like `hyprctl monitors all`.
+  readonly property string internalMonitorName: Clock.internalMonitorName(
+    Quickshell.screens.map(function(s) { return s.name })
+      .concat(Hyprland.monitors.values.map(function(m) { return m.name }))
+  )
   readonly property string focusedMonitorName: Hyprland.focusedMonitor
     ? String(Hyprland.focusedMonitor.name || "")
     : ""
@@ -35,21 +40,8 @@ Item {
     (root.barVertical ? Style.bar.sizeVertical : Style.bar.sizeHorizontal) + 14
   )
   readonly property var clockInsets: Clock.edgeInsets(
-    root.cfg.position, root.barPos, root.barVertical, root.barClearance, root.cfg.barPadding
+    root.cfg.position, root.barPos, root.barClearance, root.cfg.barPadding
   )
-
-  readonly property int monitorStateStdoutCap: 256
-  readonly property int monitorStateTimeoutMs: 5000
-
-  function refreshMonitorNames() {
-    if (monitorStateProc.running) return
-    monitorStateProc.running = true
-    monitorStateTimeout.restart()
-  }
-
-  function finishMonitorStatePoll() {
-    monitorStateTimeout.stop()
-  }
 
   function shouldShowOnScreen(screen) {
     return Clock.shouldShowOnScreen(
@@ -75,6 +67,8 @@ Item {
       root.shell.summon(root.pluginId, "{}")
   }
 
+  // Full-screen surface path (compactSurface: false): the clock is laid out
+  // inside a transparent surface covering the whole output.
   function placeClock(item, panel) {
     if (!item || !panel || panel.width <= 0 || panel.height <= 0) return
 
@@ -104,8 +98,8 @@ Item {
     }
 
     var placed = Clock.clampPlacement(x, y, item.width, item.height, panel.width, panel.height)
-    item.x = placed.x
-    item.y = placed.y
+    item.placedX = placed.x
+    item.placedY = placed.y
   }
 
   function schedulePlaceClock(item, panel) {
@@ -123,46 +117,6 @@ Item {
     onTriggered: root.placeClock(host, panel)
   }
 
-  Component.onCompleted: {
-    if (Clock.needsInternalMonitorName(root.cfg.screenMode))
-      root.refreshMonitorNames()
-  }
-
-  Timer {
-    interval: 5000
-    running: Clock.needsInternalMonitorName(root.cfg.screenMode)
-    repeat: true
-    triggeredOnStart: true
-    onTriggered: root.refreshMonitorNames()
-  }
-
-  Timer {
-    id: monitorStateTimeout
-    interval: root.monitorStateTimeoutMs
-    repeat: false
-    onTriggered: {
-      if (monitorStateProc.running)
-        monitorStateProc.running = false
-    }
-  }
-
-  Process {
-    id: monitorStateProc
-    // Extract internal monitor name (line 2) and cap stdout before StdioCollector.
-    command: [
-      "sh", "-c",
-      "omarchy-monitor-state 2>/dev/null | sed -n '2p' | head -c " + root.monitorStateStdoutCap
-    ]
-    onExited: root.finishMonitorStatePoll()
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        root.internalMonitorName = String(text || "").trim()
-        root.finishMonitorStatePoll()
-      }
-    }
-  }
-
   Variants {
     model: Quickshell.screens
 
@@ -178,9 +132,46 @@ Item {
         && root.shouldShowOnScreen(modelData)
         && !remapGuard.remapping
 
+      // Compact surface (default): the layer surface is only the clock plus its
+      // click padding and the compositor places it via anchors + margins, so a
+      // ring tick no longer repaints and recomposites a full-screen surface.
+      // Padding shrinks against an anchored edge instead of letting a margin go
+      // negative, and the surface never exceeds the output.
+      readonly property bool compact: root.cfg.compactSurface !== false
+      readonly property real hitPadX: Math.max(Style.space(28), (Style.space(180) - clockFace.implicitWidth) / 2)
+      readonly property real hitPadY: Math.max(Style.space(28), (Style.space(180) - clockFace.implicitHeight) / 2)
+      readonly property real edgeTop: root.cfg.margin + root.clockInsets.top
+      readonly property real edgeBottom: root.cfg.margin + root.clockInsets.bottom
+      readonly property real edgeLeft: root.cfg.margin + root.clockInsets.left
+      readonly property real edgeRight: root.cfg.margin + root.clockInsets.right
+      readonly property bool anchorTop: root.pos.verticalAlign === "top"
+      readonly property bool anchorBottom: root.pos.verticalAlign === "bottom"
+      readonly property bool anchorLeft: root.pos.edgeSide === "left"
+      readonly property bool anchorRight: root.pos.edgeSide === "right"
+      readonly property real padTop: panel.anchorTop ? Math.min(panel.hitPadY, panel.edgeTop) : panel.hitPadY
+      readonly property real padBottom: panel.anchorBottom ? Math.min(panel.hitPadY, panel.edgeBottom) : panel.hitPadY
+      readonly property real padLeft: panel.anchorLeft ? Math.min(panel.hitPadX, panel.edgeLeft) : panel.hitPadX
+      readonly property real padRight: panel.anchorRight ? Math.min(panel.hitPadX, panel.edgeRight) : panel.hitPadX
+
       screen: modelData
       visible: clockVisible
-      anchors { top: true; bottom: true; left: true; right: true }
+      // Unanchored axes are centred by the compositor (middle / center positions).
+      anchors {
+        top: !panel.compact || panel.anchorTop
+        bottom: !panel.compact || panel.anchorBottom
+        left: !panel.compact || panel.anchorLeft
+        right: !panel.compact || panel.anchorRight
+      }
+      margins {
+        top: panel.compact && panel.anchorTop ? panel.edgeTop - panel.padTop : 0
+        bottom: panel.compact && panel.anchorBottom ? panel.edgeBottom - panel.padBottom : 0
+        left: panel.compact && panel.anchorLeft ? panel.edgeLeft - panel.padLeft : 0
+        right: panel.compact && panel.anchorRight ? panel.edgeRight - panel.padRight : 0
+      }
+      implicitWidth: Math.min(modelData.width,
+        Math.ceil(clockFace.implicitWidth + panel.padLeft + panel.padRight))
+      implicitHeight: Math.min(modelData.height,
+        Math.ceil(clockFace.implicitHeight + panel.padTop + panel.padBottom))
       color: "transparent"
       updatesEnabled: clockVisible
 
@@ -200,8 +191,23 @@ Item {
         width: clockFace.implicitWidth
         height: clockFace.implicitHeight
 
+        // Written by root.placeClock() on the full-screen path.
+        property real placedX: 0
+        property real placedY: 0
+        // Compact path: measured from the anchored edge (as placeClock does),
+        // clamped the same way when the clock exceeds the output-capped surface.
+        readonly property var compactPos: Clock.clampPlacement(
+          panel.anchorRight ? panel.width - panel.padRight - clockHost.width
+            : (panel.anchorLeft ? panel.padLeft : (panel.width - clockHost.width) / 2),
+          panel.anchorBottom ? panel.height - panel.padBottom - clockHost.height
+            : (panel.anchorTop ? panel.padTop : (panel.height - clockHost.height) / 2),
+          clockHost.width, clockHost.height, panel.width, panel.height)
+        x: panel.compact ? clockHost.compactPos.x : clockHost.placedX
+        y: panel.compact ? clockHost.compactPos.y : clockHost.placedY
+
         function relayout() {
-          root.schedulePlaceClock(clockHost, panel)
+          if (!panel.compact)
+            root.schedulePlaceClock(clockHost, panel)
         }
 
         Component.onCompleted: clockHost.relayout()
@@ -211,6 +217,7 @@ Item {
           function onWidthChanged() { clockHost.relayout() }
           function onHeightChanged() { clockHost.relayout() }
           function onClockVisibleChanged() { clockHost.relayout() }
+          function onCompactChanged() { clockHost.relayout() }
         }
 
         Connections {
@@ -244,11 +251,12 @@ Item {
           width: clockFace.implicitWidth
           height: clockFace.implicitHeight
           active: panel.clockVisible
-          availableWidth: panel.width
-          availableHeight: panel.height
+          // Sized from the output: a compact surface is only as big as the clock.
+          availableWidth: modelData.width
+          availableHeight: modelData.height
           screenMargin: root.cfg.margin
           screenInsets: root.clockInsets
-          scaleFactor: root.scaleForScreen(panel.height)
+          scaleFactor: root.scaleForScreen(modelData.height)
           hourScaleFactor: root.cfg.hourScale
           dateScaleFactor: root.cfg.dateScale
           subtimeScaleFactor: root.cfg.subtimeScale
@@ -259,6 +267,8 @@ Item {
           position: root.cfg.position
           use24h: root.cfg.use24h
           showSeconds: root.cfg.showSeconds
+          lowPower: root.cfg.lowPower
+          renderer: root.cfg.renderer
           showDate: root.cfg.showDate
           accentMode: root.cfg.accentMode
           clockFont: root.cfg.clockFont
@@ -298,9 +308,11 @@ Item {
         // Larger hit target — the clock chrome is often small (corners, minimal layout).
         MouseArea {
           z: 20
-          anchors.centerIn: parent
-          width: Math.max(clockHost.width + Style.space(56), Style.space(180))
-          height: Math.max(clockHost.height + Style.space(56), Style.space(180))
+          // Compact: the whole surface is the hit target (it is the padded clock).
+          width: panel.compact ? panel.width : Math.max(clockHost.width + Style.space(56), Style.space(180))
+          height: panel.compact ? panel.height : Math.max(clockHost.height + Style.space(56), Style.space(180))
+          x: panel.compact ? -clockHost.x : (clockHost.width - width) / 2
+          y: panel.compact ? -clockHost.y : (clockHost.height - height) / 2
           acceptedButtons: Qt.RightButton | Qt.LeftButton
           hoverEnabled: false
           onClicked: function(mouse) {

@@ -32,6 +32,7 @@ Item {
   property real ringTransparency: 1
   property string accentMode: "contrast"
   property bool lowPower: false
+  property string renderer: "shader"
   property real screenRefreshRate: 60
 
   property string hourColor: ""
@@ -70,10 +71,16 @@ Item {
   readonly property real secondCapsuleAngleOffsetRad: face.secondCapsuleAngleOffset * Math.PI / 180
 
   property real timeMs: Date.now()
+  // Whole-second clock: text, date and the minute ring only change once a
+  // second, so they bind to this instead of the fast ring tick.
+  readonly property real secondMs: Math.floor(face.timeMs / 1000) * 1000
 
-  readonly property int ringTickMs: Clock.tickIntervalMs(
-    face.screenRefreshRate, face.lowPower, face.showSeconds
-  )
+  readonly property bool ringsVisible: face.showRings && face.spec.showRings !== false
+  // With no rings to animate (e.g. digital layout) only text changes, so a
+  // quarter-second tick keeps the seconds readout on time without 60 Hz work.
+  readonly property int ringTickMs: face.ringsVisible
+    ? Clock.tickIntervalMs(face.screenRefreshRate, face.lowPower, face.showSeconds)
+    : (face.showSeconds ? 250 : 1000)
   readonly property real layoutScale: Clock.clampScale(face.scaleFactor)
   readonly property real hourScale: Clock.clampTextScale(face.hourScaleFactor)
   readonly property real dateScale: Clock.clampTextScale(face.dateScaleFactor)
@@ -81,7 +88,7 @@ Item {
   readonly property real ringLabelScale: Clock.clampTextScale(face.ringLabelScaleFactor)
   readonly property real minuteCapsuleScale: Clock.clampTextScale(face.minuteCapsuleScaleFactor)
   readonly property real secondCapsuleScale: Clock.clampTextScale(face.secondCapsuleScaleFactor)
-  readonly property var now: Clock.partsAt(face.timeMs, face.use24h)
+  readonly property var now: Clock.partsAt(face.secondMs, face.use24h)
   readonly property var spec: Clock.layoutSpec(face.position, face.centerLayout, face.ringArcDegrees)
   readonly property bool fullRing: face.spec.fullRing
   readonly property real ringFocusAngle: face.spec.focusAngle
@@ -109,13 +116,19 @@ Item {
   readonly property real dialSize: Math.round(face.secondRadius * 2 + face.labelPad * 2)
   readonly property real hourSize: Clock.hourSizeFromScale(face.hourScale, face.spec.hourSizeFactor)
   readonly property real centerDateGap: Math.round(12 * face.dateScale)
+  // The digital readout has no ring to size the dial, so its text blocks are
+  // measured; orbit keeps the formula heights its ring layout is tuned for
+  // (only the below-dial date, which sits outside the ring, is measured).
+  readonly property bool measureText: face.spec.digitalReadout === true
   readonly property real centerDateH: face.showDate
-    ? Clock.centerDateBlockHeight(face.use24h, face.dateScale)
+    ? Math.max(Clock.centerDateBlockHeight(face.use24h, face.dateScale), centerDateBlock.implicitHeight)
     : 0
-  readonly property real dateColumnH: Clock.dateColumnHeight(face.use24h, face.dateScale)
+  readonly property real dateColumnH: Math.max(Clock.dateColumnHeight(face.use24h, face.dateScale),
+    face.measureText ? Math.max(dateAboveCol.implicitHeight, dateBelowCol.implicitHeight) : 0)
   readonly property real subtimeH: Math.round(13 * face.subtimeScale)
   readonly property int columnSpacing: Math.round(7 * Math.max(face.hourScale, face.dateScale, face.subtimeScale))
-  readonly property real hourOnlyH: face.hourSize + Math.round(12 * face.hourScale)
+  readonly property real hourOnlyH: Math.max(face.hourSize + Math.round(12 * face.hourScale),
+    face.measureText ? digitalRow.implicitHeight : 0)
   readonly property real minuteCapsuleAngle: face.spec.singleCapsule
     ? face.spec.minuteCapsuleAngle
     : (face.spec.showCapsules ? face.spec.minuteCapsuleAngle : face.ringFocusAngle)
@@ -141,13 +154,26 @@ Item {
       dateColumnH: face.dateColumnH,
       dateAboveHour: face.spec.dateAboveHour,
       showCenterSubtime: false,
-      hourSize: face.hourSize,
+      hourSize: face.measureText ? face.hourOnlyH : face.hourSize,
       columnSpacing: face.columnSpacing,
-      subtimeH: face.subtimeH
+      subtimeH: face.subtimeH,
+      // Digits have no descenders, so when the hour is the column's last line
+      // most of its font descent is empty space. Keep ~4% of the size for
+      // round-digit overshoot below the baseline and antialiasing.
+      drawnColumnH: hourColumn.implicitHeight
+        - (face.showDate && face.spec.dateInHourColumn && !face.spec.dateAboveHour
+          ? 0 : Math.max(0, hourMetrics.descent - Math.ceil(face.hourSize * 0.04))),
+      // Digital glyphs are heavy with negative tracking and overhang their
+      // advance width by a few px, so reserve that as extra horizontal slack.
+      nudgeX: Math.max(Math.abs(face.hourOffsetX),
+        face.showDate && face.spec.dateInHourColumn ? Math.abs(face.dateOffsetX) : 0)
+        + (face.measureText ? Math.round(4 * face.hourScale) : 0),
+      nudgeY: Math.max(Math.abs(face.hourOffsetY),
+        face.showDate && face.spec.dateInHourColumn ? Math.abs(face.dateOffsetY) : 0)
     }
   )
   readonly property real minuteProgress: Clock.minuteProgress(face.now)
-  readonly property real secondProgress: Clock.secondProgress(face.now)
+  readonly property real secondProgress: Clock.secondProgressAt(face.timeMs)
   readonly property var colors: Theme.applyOverrides(Theme.palette(face.accentMode, {
     foreground: Color.foreground,
     background: Color.background,
@@ -198,7 +224,8 @@ Item {
 
   function refreshTime() {
     face.timeMs = Date.now()
-    rings.repaint()
+    if (face.ringsVisible)
+      rings.tick()
   }
 
   Timer {
@@ -213,18 +240,24 @@ Item {
   onRingTickMsChanged: ringTick.restart()
   onActiveChanged: if (face.active) ringTick.restart()
 
+  FontMetrics {
+    id: hourMetrics
+    font: hourText.font
+  }
+
   Item {
     id: dialBlock
     z: 1
     x: face.geo.dialX
     y: face.geo.dialY
     width: face.geo.dialW
-    height: face.geo.height
+    height: face.geo.dialH
     clip: false
 
     RingCanvas {
       id: rings
-      visible: face.showRings && face.spec.showRings !== false
+      visible: face.ringsVisible
+      renderer: face.renderer
       width: parent.width
       height: face.geo.dialH
       cx: face.geo.cx
@@ -438,7 +471,7 @@ Item {
     z: 3
     anchors.horizontalCenter: dialBlock.horizontalCenter
     anchors.horizontalCenterOffset: face.dateOffsetX
-    y: dialBlock.y + dialBlock.height + face.centerDateGap + face.dateOffsetY
+    y: face.geo.dateY + face.dateOffsetY
     parts: face.now
     use24h: face.use24h
     uiScale: face.dateScale

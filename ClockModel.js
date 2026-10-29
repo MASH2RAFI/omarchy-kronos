@@ -135,7 +135,7 @@ function readRingTransparency(entry) {
 // touch these, and a snapshot never stores them (or itself, recursively).
 var LAYOUT_PRESET_EXCLUDED_KEYS = [
   "screenMode", "selectedMonitors", "perMonitorScale", "scaleReferenceHeight",
-  "clockEnabled", "savedLayouts"
+  "clockEnabled", "lowPower", "renderer", "compactSurface", "savedLayouts"
 ]
 
 function normalizeSavedLayouts(value) {
@@ -270,6 +270,9 @@ function readSettings(entry) {
     centerLayout: resolveLayoutStyle(entry.centerLayout),
     use24h: entry.use24h === true,
     showSeconds: entry.showSeconds !== false,
+    lowPower: entry.lowPower === true,
+    renderer: entry.renderer === "canvas" ? "canvas" : "shader",
+    compactSurface: entry.compactSurface !== false,
     showDate: entry.showDate !== false,
     clockEnabled: entry.clockEnabled !== false,
     accentMode: String(entry.accentMode || "theme"),
@@ -331,6 +334,9 @@ function settingsToEntry(pluginId, settings) {
     centerLayout: resolveLayoutStyle(settings.centerLayout),
     use24h: settings.use24h,
     showSeconds: settings.showSeconds,
+    lowPower: settings.lowPower,
+    renderer: settings.renderer,
+    compactSurface: settings.compactSurface,
     showDate: settings.showDate,
     clockEnabled: settings.clockEnabled,
     accentMode: settings.accentMode,
@@ -371,7 +377,7 @@ function barIsVertical(barPos, shell) {
     || !!(shell && shell.bar && shell.bar.vertical)
 }
 
-function edgeInsets(position, barPos, barVertical, clearance, manualPadding) {
+function edgeInsets(position, barPos, clearance, manualPadding) {
   var insets = { top: 0, right: 0, bottom: 0, left: 0 }
   var pos = String(position || "middle-right")
   var onLeft = pos.indexOf("left") !== -1
@@ -390,7 +396,9 @@ function edgeInsets(position, barPos, barVertical, clearance, manualPadding) {
   if (barPos === "top" && onTop) insets.top = clearance
   if (barPos === "bottom" && onBottom) insets.bottom = clearance
   if (barPos === "left" && onLeft) insets.left = clearance
-  if ((barPos === "right" || barVertical) && onRight) insets.right = clearance
+  // Only the edge the bar sits on is inset (barPosition() already resolves a
+  // vertical bar of unknown side to "right").
+  if (barPos === "right" && onRight) insets.right = clearance
   return insets
 }
 
@@ -480,6 +488,12 @@ function clockGeometry(position, outerRadius, labelPad, hourW, hourOnlyH, dateBe
   var hourSize = Number(columnLayout.hourSize) || hourOnlyH
   var columnSpacing = Math.round(Number(columnLayout.columnSpacing) || 10)
   var subtimeH = Number(columnLayout.subtimeH) || 0
+  var nudgeX = Math.abs(Number(columnLayout.nudgeX) || 0)
+  var nudgeY = Math.abs(Number(columnLayout.nudgeY) || 0)
+  // Measured height of the drawn hour/date column (0 = unknown). Layout keeps
+  // the formula heights; this only feeds the spill check below, so the frame
+  // grows where real text is taller than the formula (e.g. bottom positions).
+  var drawnColumnH = Number(columnLayout.drawnColumnH) || 0
   outerRadius = Number(outerRadius) || 0
   labelPad = Math.round(Number(labelPad) || 0)
   labelBleed = Math.round(Number(labelBleed) || 0)
@@ -561,6 +575,7 @@ function clockGeometry(position, outerRadius, labelPad, hourW, hourOnlyH, dateBe
 
   var aboveHour = 0
   var belowHour = 0
+  var columnBottom = frame.hourY + hourOnlyH
   if (dateInColumn && dateColumnH > 0) {
     if (dateAboveHour) aboveHour += dateColumnH + columnSpacing
     else belowHour += dateColumnH + columnSpacing
@@ -584,10 +599,25 @@ function clockGeometry(position, outerRadius, labelPad, hourW, hourOnlyH, dateBe
     }
     frame.hourY = columnY
     frame.height = Math.max(dialH, stackBottom + edgePad)
+    columnBottom = stackBottom
   }
 
+  // Grow the frame on whichever side the hour/date column (plus its manual
+  // nudges) spills past the dial, so the face never reports a box smaller
+  // than what it draws and edge placement can't push text off-screen.
+  var padL = Math.max(0, nudgeX - frame.hourX)
+  var padR = Math.max(0, frame.hourX + hourW + nudgeX - dialW)
+  var padT = Math.max(0, nudgeY - frame.hourY)
+  columnBottom = Math.max(columnBottom, frame.hourY + drawnColumnH)
+  var padB = Math.max(0, columnBottom + nudgeY - frame.height)
+  frame.dialX = padL
+  frame.dialY = padT
+  frame.width = padL + dialW + padR
+  frame.height += padT + padB
+
+  frame.dateY = padT + Math.max(dialH, columnBottom + nudgeY) + dateGap
   if (dateBelow)
-    frame.height = dialH + dateGap + dateH
+    frame.height = frame.dateY + dateH
   return frame
 }
 
@@ -702,9 +732,21 @@ function formatRefreshRate(hz) {
   return (Math.round(n * 10) / 10) + " Hz"
 }
 
-function needsInternalMonitorName(mode) {
-  mode = normalizeScreenMode(mode)
-  return mode === "primary" || mode === "external"
+// Built-in laptop panels use these connector names (the same rule as
+// omarchy-monitor-state), so the internal monitor is found without a subprocess.
+var INTERNAL_MONITOR_PATTERN = /^(eDP|LVDS|DSI)-/
+
+function isInternalMonitorName(name) {
+  return INTERNAL_MONITOR_PATTERN.test(String(name || ""))
+}
+
+// First built-in panel among `names`, or "" when there is none.
+function internalMonitorName(names) {
+  var list = Array.isArray(names) ? names : []
+  for (var i = 0; i < list.length; i++) {
+    if (isInternalMonitorName(list[i])) return String(list[i])
+  }
+  return ""
 }
 
 var _ringAngles = null
@@ -738,6 +780,11 @@ function minuteProgress(parts) {
 
 function secondProgress(parts) {
   return parts.secondFloat
+}
+
+function secondProgressAt(ms) {
+  var d = new Date(ms)
+  return d.getSeconds() + d.getMilliseconds() / 1000
 }
 
 function parsePosition(position) {

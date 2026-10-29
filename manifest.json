@@ -2,8 +2,9 @@
   "schemaVersion": 1,
   "id": "mash2rafi.kronos",
   "name": "Kronos",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "MASH2RAFI",
+  "license": "MIT",
   "description": "Desktop clock with smooth minute/second orbital rings or a unified digital readout, independent sizing controls, per-component customization, and a four-tab GUI settings panel on the wallpaper layer",
   "kinds": ["service", "panel", "bar-widget"],
   "keepLoaded": true,
@@ -94,6 +95,27 @@
       "type": "boolean",
       "label": "Show seconds ring",
       "defaultValue": true
+    },
+    {
+      "key": "lowPower",
+      "type": "boolean",
+      "label": "Low power",
+      "defaultValue": false,
+      "description": "Tick the rings twice a second instead of animating them smoothly (lighter on the GPU)"
+    },
+    {
+      "key": "renderer",
+      "type": "string",
+      "label": "Ring renderer (advanced)",
+      "defaultValue": "shader",
+      "description": "shader (rings drawn once and rotated on the GPU) or canvas (repainted every tick). Advanced, for troubleshooting; the canvas is also used automatically if the shader cannot load."
+    },
+    {
+      "key": "compactSurface",
+      "type": "boolean",
+      "label": "Compact surface (advanced)",
+      "defaultValue": true,
+      "description": "Size the clock's layer surface to the clock instead of the whole screen. Advanced, for troubleshooting; false restores the full-screen surface."
     },
     {
       "key": "showDate",

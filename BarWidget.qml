@@ -9,7 +9,14 @@ BarWidget {
   moduleName: "mash2rafi.kronos"
 
   readonly property var shell: root.bar ? root.bar.shell : null
-  readonly property var pluginEntry: Config.entryOrDefault(root.shell, root.moduleName)
+  // Live from disk, like Service.qml: the host's barConfig is a one-time
+  // snapshot, so on/off changes made elsewhere would leave the icon stale.
+  readonly property var pluginEntry: liveConfig.entry || Config.entryOrDefault(root.shell, root.moduleName)
+
+  ShellConfigWatcher {
+    id: liveConfig
+    pluginId: root.moduleName
+  }
   readonly property var cfg: Clock.readSettings(root.pluginEntry)
   readonly property bool clockEnabled: root.cfg.clockEnabled !== false
 
@@ -38,7 +45,9 @@ BarWidget {
     bar: root.bar
     text: "󰥔"
     slotSize: Style.bar.statusSlot
-    active: root.clockEnabled
+    // Highlighted while the clock is hidden, so a switched-off clock stands
+    // out in the bar; plain bar text colour while it is showing.
+    active: !root.clockEnabled
     useActiveColor: true
     tooltipText: root.clockEnabled
       ? "Kronos on — click to hide, right-click for settings"

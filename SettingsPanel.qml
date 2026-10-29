@@ -428,6 +428,7 @@ Item {
                   secondCapsuleRadiusOffset: root.draft.secondCapsuleRadiusOffset
                   ringRotationOffset: root.draft.ringRotationOffset
                   lowPower: true
+                  renderer: root.draft.renderer
                 }
               }
             }
@@ -702,6 +703,16 @@ Item {
                 checked: root.draft.showSeconds
                 onClicked: {
                   root.patchDraft({ showSeconds: !root.draft.showSeconds })
+                }
+              }
+
+              Toggle {
+                width: parent.width
+                label: "Low power"
+                description: "Tick the rings twice a second instead of smoothly — much lighter on the GPU."
+                checked: root.draft.lowPower
+                onClicked: {
+                  root.patchDraft({ lowPower: !root.draft.lowPower })
                 }
               }
 

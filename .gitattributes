@@ -4,3 +4,4 @@
 *.js text linguist-language=JavaScript
 *.json text
 *.md text
+*.qsb binary
