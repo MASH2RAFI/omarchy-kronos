@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import "ClockModel.js" as Clock
 import "ClockTheme.js" as Theme
 
@@ -34,7 +35,7 @@ Item {
   property bool fullRing: false
   property bool showSeconds: true
   property real ringStrength: 1
-  property color ringColor: Color.foreground
+  property color ringColor: Commons.Color.foreground
   property color secondRingColor: root.ringColor
   property color minuteLabelColor: root.ringColor
   property color secondLabelColor: root.secondRingColor

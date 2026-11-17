@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Scrollable dropdown for medium-length option lists (font pickers).
@@ -12,12 +13,12 @@ Item {
   property var options: []
   property int maxVisibleRows: 6
 
-  property color foreground: Color.popups.text
-  property color background: Color.popups.background
-  property color popupBorder: Color.popups.border
-  property color accent: Color.accent
+  property color foreground: Commons.Color.popups.text
+  property color background: Commons.Color.popups.background
+  property color popupBorder: Commons.Color.popups.border
+  property color accent: Commons.Color.accent
   readonly property var popupBorderSpec: Border.localOrSurfaceSpec(
-    "popups", "border", popupBorder, Color.popups.border, Style.normalBorderWidth
+    "popups", "border", popupBorder, Commons.Color.popups.border, Style.normalBorderWidth
   )
   property string fontFamily: Style.font.family
   property int rowHeight: Style.spacing.controlHeight

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // Full ring dial — 60 ticks, numeric label at every tick (00–59).
 //
@@ -22,7 +23,7 @@ Item {
   property bool fullRing: false
   property bool showSeconds: true
   property real ringStrength: 1
-  property color ringColor: Color.foreground
+  property color ringColor: Commons.Color.foreground
   property color secondRingColor: root.ringColor
   property color minuteLabelColor: root.ringColor
   property color secondLabelColor: root.secondRingColor
