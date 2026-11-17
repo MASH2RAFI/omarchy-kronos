@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Column {
@@ -25,7 +26,7 @@ Column {
     width: parent.width
     visible: root.label !== ""
     text: root.label
-    color: Qt.darker(Color.foreground, 1.4)
+    color: Qt.darker(Commons.Color.foreground, 1.4)
     font.family: Style.font.family
     font.pixelSize: Style.font.caption
     font.bold: true
@@ -56,7 +57,7 @@ Column {
       width: Style.space(44)
       horizontalAlignment: Text.AlignRight
       text: root.valueText
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -67,7 +68,7 @@ Column {
     visible: root.helpText !== ""
     wrapMode: Text.WordWrap
     text: root.helpText
-    color: Qt.darker(Color.foreground, 1.45)
+    color: Qt.darker(Commons.Color.foreground, 1.45)
     font.family: Style.font.family
     font.pixelSize: Style.font.caption
   }

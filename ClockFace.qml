@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import "ClockModel.js" as Clock
 import "ClockTheme.js" as Theme
 
@@ -175,10 +176,10 @@ Item {
   readonly property real minuteProgress: Clock.minuteProgress(face.now)
   readonly property real secondProgress: Clock.secondProgressAt(face.timeMs)
   readonly property var colors: Theme.applyOverrides(Theme.palette(face.accentMode, {
-    foreground: Color.foreground,
-    background: Color.background,
-    muted: Color.muted,
-    accent: Color.accent
+    foreground: Commons.Color.foreground,
+    background: Commons.Color.background,
+    muted: Commons.Color.muted,
+    accent: Commons.Color.accent
   }), {
     hour: face.hourColor,
     datePrimary: face.dateColor,
@@ -301,7 +302,7 @@ Item {
     }
 
     Connections {
-      target: Color
+      target: Commons.Color
       function onForegroundChanged() { face.markRingDirty() }
       function onBackgroundChanged() { face.markRingDirty() }
       function onMutedChanged() { face.markRingDirty() }

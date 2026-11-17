@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "FontOptions.js" as Fonts
 import "ClockModel.js" as Clock
@@ -30,19 +31,19 @@ Item {
     || dateFontField.popupOpen
     || minuteCapsuleFontField.popupOpen
     || secondCapsuleFontField.popupOpen
-  readonly property color scrim: Color.menu.scrim
-  readonly property color cardBackground: Color.popups.background
+  readonly property color scrim: Commons.Color.menu.scrim
+  readonly property color cardBackground: Commons.Color.popups.background
   readonly property var cardBorderSpec: Border.surfaceSpec(
-    "popups", "border", Color.popups.border, Math.max(1, Style.space(2))
+    "popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2))
   )
   readonly property int cardPadding: Style.spacing.panelPadding + Style.space(6)
   readonly property int contentGap: Style.space(16)
   readonly property int scrollBottomPad: Style.space(12)
 
   readonly property var fakeBar: QtObject {
-    readonly property color foreground: Color.foreground
-    readonly property color background: Color.background
-    readonly property color urgent: Color.urgent
+    readonly property color foreground: Commons.Color.foreground
+    readonly property color background: Commons.Color.background
+    readonly property color urgent: Commons.Color.urgent
     readonly property string fontFamily: Style.font.family
     readonly property string position: "top"
     readonly property bool vertical: false
@@ -307,7 +308,7 @@ Item {
             id: titleBlock
             width: parent.width
             text: "Kronos"
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.title
             font.bold: true
@@ -357,9 +358,9 @@ Item {
             width: parent.width
             height: contentScope.previewHeight
             radius: Style.cornerRadius
-            color: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 0.55)
+            color: Qt.rgba(Commons.Color.background.r, Commons.Color.background.g, Commons.Color.background.b, 0.55)
             borderSpec: Border.localOrSurfaceSpec(
-              "popups", "border", Color.popups.border, Color.foreground, Style.normalBorderWidth
+              "popups", "border", Commons.Color.popups.border, Commons.Color.foreground, Style.normalBorderWidth
             )
 
             Item {
@@ -460,7 +461,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Changes apply immediately. Right-click the clock on your wallpaper to reopen this menu."
-                color: Qt.darker(Color.foreground, 1.35)
+                color: Qt.darker(Commons.Color.foreground, 1.35)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -509,7 +510,7 @@ Item {
                 wrapMode: Text.WordWrap
                 visible: root.draft.savedLayouts.length === 0
                 text: "No saved layouts yet. Dial in a look anywhere in this panel, then save it below to switch back to it anytime."
-                color: Qt.darker(Color.foreground, 1.45)
+                color: Qt.darker(Commons.Color.foreground, 1.45)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -528,7 +529,7 @@ Item {
                     width: parent.width
                     elide: Text.ElideRight
                     text: layoutData.name
-                    color: Color.foreground
+                    color: Commons.Color.foreground
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                     font.bold: true
@@ -784,7 +785,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Font and scale controls are independent — adjust each without affecting ring diameter or spacing."
-                color: Qt.darker(Color.foreground, 1.35)
+                color: Qt.darker(Commons.Color.foreground, 1.35)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -981,7 +982,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Fine-tune each piece independently — color and font override the theme/clock-font defaults when set; offsets nudge position without disturbing auto-layout. Size and Show date/seconds live on the other tabs."
-                color: Qt.darker(Color.foreground, 1.35)
+                color: Qt.darker(Commons.Color.foreground, 1.35)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -990,8 +991,8 @@ Item {
                 width: parent.width
                 height: hourCard.implicitHeight + Style.spacing.panelPadding * 2
                 radius: Style.cornerRadius
-                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
-                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.12)
                 border.width: Math.max(1, Style.space(1))
 
                 Column {
@@ -1065,8 +1066,8 @@ Item {
                 width: parent.width
                 height: dateCard.implicitHeight + Style.spacing.panelPadding * 2
                 radius: Style.cornerRadius
-                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
-                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.12)
                 border.width: Math.max(1, Style.space(1))
 
                 Column {
@@ -1133,8 +1134,8 @@ Item {
                 width: parent.width
                 height: minuteCapsuleCard.implicitHeight + Style.spacing.panelPadding * 2
                 radius: Style.cornerRadius
-                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
-                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.12)
                 border.width: Math.max(1, Style.space(1))
 
                 Column {
@@ -1208,8 +1209,8 @@ Item {
                 width: parent.width
                 height: secondCapsuleCard.implicitHeight + Style.spacing.panelPadding * 2
                 radius: Style.cornerRadius
-                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
-                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.12)
                 border.width: Math.max(1, Style.space(1))
 
                 Column {
@@ -1283,8 +1284,8 @@ Item {
                 width: parent.width
                 height: ringsCard.implicitHeight + Style.spacing.panelPadding * 2
                 radius: Style.cornerRadius
-                color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.04)
-                border.color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.12)
+                color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.04)
+                border.color: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.12)
                 border.width: Math.max(1, Style.space(1))
 
                 Column {
@@ -1378,7 +1379,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Control which outputs show the clock and how each screen sizes the dial."
-                color: Qt.darker(Color.foreground, 1.35)
+                color: Qt.darker(Commons.Color.foreground, 1.35)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -1395,7 +1396,7 @@ Item {
                 wrapMode: Text.WordWrap
                 text: Quickshell.screens.length + " monitor"
                   + (Quickshell.screens.length === 1 ? "" : "s") + " detected — choose where the clock appears."
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 font.bold: true
@@ -1425,9 +1426,9 @@ Item {
                   required property var modelData
                   width: monitorsPage.width
                   radius: Style.cornerRadius
-                  color: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 0.35)
+                  color: Qt.rgba(Commons.Color.background.r, Commons.Color.background.g, Commons.Color.background.b, 0.35)
                   borderSpec: Border.localOrSurfaceSpec(
-                    "popups", "border", Color.popups.border, Color.foreground, Style.normalBorderWidth
+                    "popups", "border", Commons.Color.popups.border, Commons.Color.foreground, Style.normalBorderWidth
                   )
                   padding: Style.space(10)
                   implicitHeight: screenRow.implicitHeight + padding * 2
@@ -1442,7 +1443,7 @@ Item {
                     Text {
                       width: parent.width
                       text: modelData.name || "Unknown"
-                      color: Color.foreground
+                      color: Commons.Color.foreground
                       font.family: Style.font.family
                       font.pixelSize: Style.font.body
                       font.bold: true
@@ -1452,7 +1453,7 @@ Item {
                       width: parent.width
                       text: modelData.width + " × " + modelData.height + " px · "
                         + Clock.formatRefreshRate(root.refreshRateForScreen(modelData))
-                      color: Qt.darker(Color.foreground, 1.35)
+                      color: Qt.darker(Commons.Color.foreground, 1.35)
                       font.family: Style.font.family
                       font.pixelSize: Style.font.caption
                     }
@@ -1472,7 +1473,7 @@ Item {
                 wrapMode: Text.WordWrap
                 visible: root.draft.screenMode === "selected" && root.draft.selectedMonitors.length === 0
                 text: "No monitors selected — the clock will be hidden on every output. Re-open settings with: omarchy-shell shell summon mash2rafi.kronos \"{}\""
-                color: Color.urgent
+                color: Commons.Color.urgent
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -1505,7 +1506,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Use the toggles above to pick monitors directly. Presets override that selection — All shows every output; Custom keeps your picks; others follow primary, focused, or external rules."
-                color: Qt.darker(Color.foreground, 1.45)
+                color: Qt.darker(Commons.Color.foreground, 1.45)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -1514,7 +1515,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Ring repaint is capped at 60 Hz per monitor (1 Hz when seconds are off). The settings preview uses a slower tick while open."
-                color: Qt.darker(Color.foreground, 1.45)
+                color: Qt.darker(Commons.Color.foreground, 1.45)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }
@@ -1583,7 +1584,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Bar padding adds extra inset when the Omarchy bar shares the same edge. 0 auto-detects."
-                color: Qt.darker(Color.foreground, 1.45)
+                color: Qt.darker(Commons.Color.foreground, 1.45)
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
               }

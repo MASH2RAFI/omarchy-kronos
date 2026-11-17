@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 Rectangle {
   id: root
@@ -10,9 +11,9 @@ Rectangle {
   property string fontFamily: Style.font.family
   property real fontSize: 15
   property int fontWeight: Font.Bold
-  property color textColor: Color.foreground
-  property color fillColor: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 0.82)
-  property color borderColor: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.14)
+  property color textColor: Commons.Color.foreground
+  property color fillColor: Qt.rgba(Commons.Color.background.r, Commons.Color.background.g, Commons.Color.background.b, 0.82)
+  property color borderColor: Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, 0.14)
 
   width: Math.round(46 * root.uiScale)
   height: Math.round(34 * root.uiScale)

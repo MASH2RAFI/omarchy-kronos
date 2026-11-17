@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 Column {
   id: root
@@ -12,8 +13,8 @@ Column {
   property real dateFontSize: 11
   property real dayFontSize: 18
   property real ampmFontSize: 10
-  property color primaryColor: Color.foreground
-  property color mutedColor: Color.muted
+  property color primaryColor: Commons.Color.foreground
+  property color mutedColor: Commons.Color.muted
 
   spacing: Math.round(4 * root.uiScale)
   anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined

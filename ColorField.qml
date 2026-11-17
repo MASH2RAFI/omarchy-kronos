@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Hex color override field: swatch + "#RRGGBB" text input + "Auto" reset.
@@ -23,7 +24,7 @@ Column {
     width: parent.width
     visible: root.label !== ""
     text: root.label
-    color: Qt.darker(Color.foreground, 1.4)
+    color: Qt.darker(Commons.Color.foreground, 1.4)
     font.family: Style.font.family
     font.pixelSize: Style.font.caption
     font.bold: true
@@ -40,7 +41,7 @@ Column {
       radius: Style.cornerRadius
       anchors.verticalCenter: parent.verticalCenter
       color: root.valueValid ? root.value : "transparent"
-      border.color: Qt.darker(Color.foreground, 1.6)
+      border.color: Qt.darker(Commons.Color.foreground, 1.6)
       border.width: root.valueValid ? 1 : Math.max(1, Style.space(1))
     }
 
@@ -83,7 +84,7 @@ Column {
     visible: root.helpText !== ""
     wrapMode: Text.WordWrap
     text: root.helpText
-    color: Qt.darker(Color.foreground, 1.45)
+    color: Qt.darker(Commons.Color.foreground, 1.45)
     font.family: Style.font.family
     font.pixelSize: Style.font.caption
   }
